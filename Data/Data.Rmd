@@ -1,0 +1,80 @@
+---
+title: "Data"
+author: "masri"
+date: "2023-08-06"
+output: html_document
+---
+
+A code chunk only for libraries.
+```{r}
+library(dplyr)
+library(poliscidata)
+
+```
+
+taking only the 7 desired countries from the original dataset. 7 Wave
+```{r}
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LBY")
+
+# Filter the data for specific countries
+Wave_7 <- Wave_7[Wave_7$B_COUNTRY_ALPHA %in% desired_countries, ]
+
+```
+
+taking only the 7 desired countries from the original dataset. 6 Wave
+```{r}
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LBY")
+
+# Filter the data for specific countries
+Wave_6 <- Wave_6[Wave_6$B_COUNTRY_ALPHA %in% desired_countries, ]
+
+```
+# List of specific countries
+
+Take only specific columns after we extracted only the desired countries. 7 Wave
+```{r setup, include=FALSE}
+
+Wave_7_selected <- subset(Wave_7, select = c("Q46", "Q47", "Q48", "Q49", "Q50", "Q57", "Q65", "Q68", 
+                                            "Q70", "Q71", "Q72", "Q73", "Q209", "Q210", "Q211", "Q212", "Q213", "Q215", 
+                                            "Q218", "Q219", "Q220", "Q173", "Q262", "Q260", "Q279"))
+
+```
+
+Take only specific columns after we extracted only the desired countries. 6 Wave
+
+```{r cars}
+
+Wave_6_selected <- subset(Wave_6, select = c("V10", "V11", "V55", "V23", "V59", "V24", "V109", "V112", 
+                                            "V114", "V115", "V116", "V117", "V85", "V86", "V87", "V88", "V147", "V242", "V240", "V229"))
+
+```
+
+
+naming the attributes with meaningful names. 7 Wave
+
+```{r pressure, echo=FALSE}
+
+Wave_7_renamed <- Wave_7_selected %>%
+   rename(happiness = Q46, free_choice = Q48, health = Q47, life_satis = Q49,
+          financial_satis = Q50, gen_trust = Q57,
+          armed_trust = Q65, labor_trust = Q68, court_trust = Q70, gov_trust = Q71, 
+          parties_trust = Q72, Parliament_trust = Q73, sign_pet = Q209, join_boycott = Q210,
+          attend_demo = Q211, join_strike = Q212, donate = Q213, enc_poli = Q215, 
+          sign_pet_onli = Q218, enc_poli_onli = Q219, org_poli_onli = Q220,
+          religiosity = Q173, age = Q262, gender = Q260, employment = Q279)
+          
+```
+
+naming the attributes with meaningful names. 6 Wave
+
+```{r pressure, echo=FALSE}
+
+Wave_6_renamed <- Wave_6_selected %>%
+   rename(happiness = V10, health = V11, free_choice = V55, life_satis = V23, 
+          financial_satis = V59, gen_trust = V24, armed_trust = V109, 
+          labor_trust = V112, court_trust = V114, gov_trust = V115, parties_trust = V116,
+          Parliament_trust = V117, sign_pet = V85, join_boycott = V86, attend_demo = V87,
+          join_strike = V88, religiosity = V147, age = V242, gender = V240,
+          e0mployment = V229)
+          
+```
