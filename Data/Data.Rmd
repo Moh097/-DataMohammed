@@ -32,11 +32,13 @@ Wave_6 <- Wave_6[Wave_6$B_COUNTRY_ALPHA %in% desired_countries, ]
 # List of specific countries
 
 Take only specific columns after we extracted only the desired countries. 7 Wave
-```{r setup, include=FALSE}
+```{r}
 
-Wave_7_selected <- subset(Wave_7, select = c("Q46", "Q47", "Q48", "Q49", "Q50", "Q57", "Q65", "Q68", 
-                                            "Q70", "Q71", "Q72", "Q73", "Q209", "Q210", "Q211", "Q212", "Q213", "Q215", 
-                                            "Q218", "Q219", "Q220", "Q173", "Q262", "Q260", "Q279"))
+Wave_7_selected <- subset(Wave_7, select = c("B_COUNTRY_ALPHA", "Q46", "Q47", "Q48", "Q49",
+                                             "Q50", "Q57","Q65", "Q68", "Q70", "Q71", "Q72",
+                                             "Q73","Q209", "Q210", "Q211", "Q212", "Q213",
+                                             "Q215", "Q218", "Q219", "Q220", "Q173",
+                                             "Q262", "Q260", "Q279"))
 
 ```
 
@@ -44,15 +46,17 @@ Take only specific columns after we extracted only the desired countries. 6 Wave
 
 ```{r cars}
 
-Wave_6_selected <- subset(Wave_6, select = c("V10", "V11", "V55", "V23", "V59", "V24", "V109", "V112", 
-                                            "V114", "V115", "V116", "V117", "V85", "V86", "V87", "V88", "V147", "V242", "V240", "V229"))
+Wave_6_selected <- subset(Wave_6, select = c("B_COUNTRY_ALPHA", "V10", "V11", "V55", "V23",
+                                             "V59", "V24","V109", "V112", "V114", "V115",
+                                             "V116","V117", "V85", "V86", "V87", "V88",
+                                             "V147","V242", "V240", "V229"))
 
 ```
 
 
 naming the attributes with meaningful names. 7 Wave
 
-```{r pressure, echo=FALSE}
+```{r}
 
 Wave_7_renamed <- Wave_7_selected %>%
    rename(happiness = Q46, free_choice = Q48, health = Q47, life_satis = Q49,
@@ -61,13 +65,14 @@ Wave_7_renamed <- Wave_7_selected %>%
           parties_trust = Q72, Parliament_trust = Q73, sign_pet = Q209, join_boycott = Q210,
           attend_demo = Q211, join_strike = Q212, donate = Q213, enc_poli = Q215, 
           sign_pet_onli = Q218, enc_poli_onli = Q219, org_poli_onli = Q220,
-          religiosity = Q173, age = Q262, gender = Q260, employment = Q279)
+          religiosity = Q173, age = Q262, gender = Q260, employment = Q279, 
+          country = B_COUNTRY_ALPHA)
           
 ```
 
 naming the attributes with meaningful names. 6 Wave
 
-```{r pressure, echo=FALSE}
+```{r}
 
 Wave_6_renamed <- Wave_6_selected %>%
    rename(happiness = V10, health = V11, free_choice = V55, life_satis = V23, 
@@ -75,6 +80,23 @@ Wave_6_renamed <- Wave_6_selected %>%
           labor_trust = V112, court_trust = V114, gov_trust = V115, parties_trust = V116,
           Parliament_trust = V117, sign_pet = V85, join_boycott = V86, attend_demo = V87,
           join_strike = V88, religiosity = V147, age = V242, gender = V240,
-          e0mployment = V229)
+          e0mployment = V229, country = B_COUNTRY_ALPHA)
           
+```
+
+cleaning the dataset. 7 Wave
+```{r}
+for (col in names(Wave_7_renamed)) {
+  Wave_7_renamed[[col]][Wave_7_renamed[[col]] %in% 
+  c(-1, -2, -4, -5)] <- NA
+}
+
+```
+
+cleaning the dataset. 6 Wave
+```{r}
+for (col in names(Wave_6_renamed)) {
+  Wave_6_renamed[[col]][Wave_6_renamed[[col]] %in% 
+  c(-1, -2, -4, -5)] <- NA
+}
 ```
