@@ -7,26 +7,25 @@ output: html_document
 
 A code chunk only for libraries.
 ```{r}
-library(dplyr)
-library(poliscidata)
 
 ```
 
+
 taking only the 7 desired countries from the original dataset. 7 Wave
 ```{r}
-desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LBY")
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LIB")
 
 # Filter the data for specific countries
-Wave_7 <- Wave_7[Wave_7$B_COUNTRY_ALPHA %in% desired_countries, ]
+Wave_7 <- Wave_7[Wave_7$C_COW_ALPHA %in% desired_countries, ]
 
 ```
 
 taking only the 7 desired countries from the original dataset. 6 Wave
 ```{r}
-desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LBY")
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LBY")
 
 # Filter the data for specific countries
-Wave_6 <- Wave_6[Wave_6$B_COUNTRY_ALPHA %in% desired_countries, ]
+Wave_6 <- Wave_6[Wave_6$C_COW_ALPHA %in% desired_countries, ]
 
 ```
 # List of specific countries
@@ -34,7 +33,8 @@ Wave_6 <- Wave_6[Wave_6$B_COUNTRY_ALPHA %in% desired_countries, ]
 Take only specific columns after we extracted only the desired countries. 7 Wave
 ```{r}
 
-Wave_7_selected <- subset(Wave_7, select = c("B_COUNTRY_ALPHA", "Q46", "Q47", "Q48", "Q49",
+Wave_7_selected <- subset(Wave_7, select = c("C_COW_ALPHA", "Q46",
+                                                                "Q47", "Q48", "Q49",
                                              "Q50", "Q57","Q65", "Q68", "Q70", "Q71", "Q72",
                                              "Q73","Q209", "Q210", "Q211", "Q212", "Q213",
                                              "Q215", "Q218", "Q219", "Q220", "Q173",
@@ -46,7 +46,7 @@ Take only specific columns after we extracted only the desired countries. 6 Wave
 
 ```{r cars}
 
-Wave_6_selected <- subset(Wave_6, select = c("B_COUNTRY_ALPHA", "V10", "V11", "V55", "V23",
+Wave_6_selected <- subset(Wave_6, select = c("C_COW_ALPHA", "V10", "V11", "V55", "V23",
                                              "V59", "V24","V109", "V112", "V114", "V115",
                                              "V116","V117", "V85", "V86", "V87", "V88",
                                              "V147","V242", "V240", "V229"))
@@ -57,7 +57,7 @@ Wave_6_selected <- subset(Wave_6, select = c("B_COUNTRY_ALPHA", "V10", "V11", "V
 naming the attributes with meaningful names. 7 Wave
 
 ```{r}
-
+library(dplyr)
 Wave_7_renamed <- Wave_7_selected %>%
    rename(happiness = Q46, free_choice = Q48, health = Q47, life_satis = Q49,
           financial_satis = Q50, gen_trust = Q57,
@@ -66,21 +66,21 @@ Wave_7_renamed <- Wave_7_selected %>%
           attend_demo = Q211, join_strike = Q212, donate = Q213, enc_poli = Q215, 
           sign_pet_onli = Q218, enc_poli_onli = Q219, org_poli_onli = Q220,
           religiosity = Q173, age = Q262, gender = Q260, employment = Q279, 
-          country = B_COUNTRY_ALPHA)
+          country = C_COW_ALPHA)
           
 ```
 
 naming the attributes with meaningful names. 6 Wave
 
 ```{r}
-
+library(dplyr)
 Wave_6_renamed <- Wave_6_selected %>%
    rename(happiness = V10, health = V11, free_choice = V55, life_satis = V23, 
           financial_satis = V59, gen_trust = V24, armed_trust = V109, 
           labor_trust = V112, court_trust = V114, gov_trust = V115, parties_trust = V116,
           Parliament_trust = V117, sign_pet = V85, join_boycott = V86, attend_demo = V87,
           join_strike = V88, religiosity = V147, age = V242, gender = V240,
-          e0mployment = V229, country = B_COUNTRY_ALPHA)
+          employment = V229, country = C_COW_ALPHA)
           
 ```
 
@@ -99,4 +99,81 @@ for (col in names(Wave_6_renamed)) {
   Wave_6_renamed[[col]][Wave_6_renamed[[col]] %in% 
   c(-1, -2, -4, -5)] <- NA
 }
+```
+
+merge the two data sets.
+```{r}
+library(dplyr)
+merged_data <- bind_rows(Wave_6_renamed, Wave_7_renamed)
+merged_data <- merged_data[, !(names(merged_data) %in% c("org_poli_onli", "enc_poli_onli"
+                                                         , "sign_pet_onli", "donate",
+                                                         "enc_poli"))]
+```
+
+
+```{r}
+library(ggplot2)
+
+# Assuming 'merged_data' is your data frame
+missing_proportions <- colMeans(is.na(merged_data))
+missing_data_df <- data.frame(variable = names(missing_proportions), proportion = missing_proportions)
+
+# Create a bar chart to visualize missing data proportions
+ggplot(missing_data_df, aes(x = variable, y = proportion)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Proportion of Missing Data by Variable", x = "Variable", y = "Proportion Missing") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+``` {r}
+library(naniar)
+library(ggplot2)
+
+
+# Function to summarize missing data for each country
+missing_summary_by_country <- function(merged_data) {
+  country <- unique(merged_data$country)[1]
+  missing_summary <- sapply(merged_data, function(x) sum(is.na(x)))
+  print(paste("Missing data summary for", country, ":"))
+  print(missing_summary)
+}
+
+print(missing_proportions)
+1
+# Apply the function to each subset of the data, grouped by country
+by(merged_data, merged_data$country, missing_summary_by_country)
+
+
+# Function to summarize and visualize missing data for each country
+missing_summary_and_visualization_by_country <- function(merged_data) {
+  country <- unique(merged_data$country)[1]
+  missing_summary <- sapply(merged_data, function(x) sum(is.na(x)))
+  print(paste("Missing data summary for", country, ":"))
+  print(missing_summary)
+  
+  plot <- naniar::vis_miss(merged_data) + 
+    ggtitle(paste("Missing Data Visualization for", country)) +
+    theme_minimal()
+  
+  print(plot)
+}
+# Apply the function to each subset of the data, grouped by country
+by(merged_data, merged_data$country, missing_summary_and_visualization_by_country)
+
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+merged_data %>%
+  group_by(country) %>%
+  summarise(across(
+    .cols = everything(),
+    .fns = ~ mean(is.na(.x)),
+    .names = "{.col}_missing_proportion"
+  )) -> missing_proportions
+
+# Print the result
+print(missing_proportions)
 ```
