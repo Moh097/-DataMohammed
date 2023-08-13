@@ -130,21 +130,6 @@ ggplot(missing_data_df, aes(x = variable, y = proportion)) +
 library(naniar)
 library(ggplot2)
 
-
-# Function to summarize missing data for each country
-missing_summary_by_country <- function(merged_data) {
-  country <- unique(merged_data$country)[1]
-  missing_summary <- sapply(merged_data, function(x) sum(is.na(x)))
-  print(paste("Missing data summary for", country, ":"))
-  print(missing_summary)
-}
-
-print(missing_proportions)
-1
-# Apply the function to each subset of the data, grouped by country
-by(merged_data, merged_data$country, missing_summary_by_country)
-
-
 # Function to summarize and visualize missing data for each country
 missing_summary_and_visualization_by_country <- function(merged_data) {
   country <- unique(merged_data$country)[1]
@@ -154,10 +139,13 @@ missing_summary_and_visualization_by_country <- function(merged_data) {
   
   plot <- naniar::vis_miss(merged_data) + 
     ggtitle(paste("Missing Data Visualization for", country)) +
-    theme_minimal()
+    theme_minimal() +
+    theme(plot.margin = margin(t = 0.5, r = 0.5, b = 2, l = 0.5, unit = "cm"),
+          axis.text.x = element_text(angle = 90, hjust = 1))  # Adjust angle and bottom margin
   
   print(plot)
 }
+
 # Apply the function to each subset of the data, grouped by country
 by(merged_data, merged_data$country, missing_summary_and_visualization_by_country)
 
@@ -167,6 +155,63 @@ by(merged_data, merged_data$country, missing_summary_and_visualization_by_countr
 library(dplyr)
 library(tidyr)
 merged_data %>%
+  group_by(country) %>%
+  summarise(across(
+    .cols = everything(),
+    .fns = ~ mean(is.na(.x)),
+    .names = "{.col}_missing_proportion"
+  )) -> missing_proportions
+
+# Print the result
+print(missing_proportions)
+```
+
+```{r}
+library(dlookr)
+plot_na_pareto(merged_data)
+plot_na_intersect(merged_data)
+```
+
+```{r}
+library(naniar)
+gg_miss_fct(x = merged_data, fct = country)
+```
+
+```{r}
+library(ggplot2)
+merged_data_na <- data.frame(merged_data)
+imputed_data <- imputate_na(merged_data_na, armed_trust, method = "mean")
+plot(merged_data_na)
+```
+
+```{r}
+library(missRanger)
+merged_imputet <- missRanger(
+  merged_data_na, 
+  formula = . ~ . ,
+  num.trees = 1000, 
+  verbose = 2, 
+  seed = 111,  
+  returnOOB = T)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+column_to_exclude <- "country"
+merged_imputet_rounded <- merged_imputet %>%
+  mutate(across(-all_of(column_to_exclude), round, 0))
+ggplot()+
+  geom_point(data = merged_imputet_rounded, aes(country, armed_trust), 
+             color = "red")+
+  geom_point(data = merged_data_na, aes(country, armed_trust))+
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+merged_imputet_rounded %>%
   group_by(country) %>%
   summarise(across(
     .cols = everything(),
