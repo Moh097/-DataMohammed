@@ -7,7 +7,7 @@ output: html_document
 
 A code chunk only for libraries.
 ```{r}
-
+rm(merged_data_new, merged_data_vis, merged_data_vis_2, merged_imputet_1, missing_proportions_new, Wave_6_new, Wave_6_selected_new, Wave_6_try, Wave_7_new, Wave_7_renamed_new, Wave_7_selected_new, Wave_7_try)
 ```
 
 
@@ -16,7 +16,7 @@ taking only the 7 desired countries from the original dataset. 7 Wave
 desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LIB")
 
 # Filter the data for specific countries
-Wave_7 <- Wave_7[Wave_7$C_COW_ALPHA %in% desired_countries, ]
+Wave_7 <- `WVS_Cross-National_Wave_7_v5_0`[`WVS_Cross-National_Wave_7_v5_0`$C_COW_ALPHA %in% desired_countries, ]
 
 ```
 
@@ -25,7 +25,7 @@ taking only the 7 desired countries from the original dataset. 6 Wave
 desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LBY")
 
 # Filter the data for specific countries
-Wave_6 <- Wave_6[Wave_6$C_COW_ALPHA %in% desired_countries, ]
+Wave_6 <- WV6_Data_R_v20201117[WV6_Data_R_v20201117$C_COW_ALPHA %in% desired_countries, ]
 
 ```
 # List of specific countries
@@ -35,9 +35,9 @@ Take only specific columns after we extracted only the desired countries. 7 Wave
 
 Wave_7_selected <- subset(Wave_7, select = c("C_COW_ALPHA", "Q46",
                                                                 "Q47", "Q48", "Q49",
-                                             "Q50", "Q57","Q65", "Q68", "Q70", "Q71", "Q72",
-                                             "Q73","Q209", "Q210", "Q211", "Q212", "Q213",
-                                             "Q215", "Q218", "Q219", "Q220", "Q173",
+                                             "Q50", "Q57", "Q209", "Q210", "Q211", "Q212",
+                                             "Q213",
+                                             "Q215", "Q218", "Q219", "Q220", "Q172",
                                              "Q262", "Q260", "Q279"))
 
 ```
@@ -47,9 +47,8 @@ Take only specific columns after we extracted only the desired countries. 6 Wave
 ```{r cars}
 
 Wave_6_selected <- subset(Wave_6, select = c("C_COW_ALPHA", "V10", "V11", "V55", "V23",
-                                             "V59", "V24","V109", "V112", "V114", "V115",
-                                             "V116","V117", "V85", "V86", "V87", "V88",
-                                             "V147","V242", "V240", "V229"))
+                                             "V59", "V24", "V85", "V86", "V87", "V88",
+                                             "V146","V242", "V240", "V229"))
 
 ```
 
@@ -61,11 +60,10 @@ library(dplyr)
 Wave_7_renamed <- Wave_7_selected %>%
    rename(happiness = Q46, free_choice = Q48, health = Q47, life_satis = Q49,
           financial_satis = Q50, gen_trust = Q57,
-          armed_trust = Q65, labor_trust = Q68, court_trust = Q70, gov_trust = Q71, 
-          parties_trust = Q72, Parliament_trust = Q73, sign_pet = Q209, join_boycott = Q210,
+          sign_pet = Q209, join_boycott = Q210,
           attend_demo = Q211, join_strike = Q212, donate = Q213, enc_poli = Q215, 
           sign_pet_onli = Q218, enc_poli_onli = Q219, org_poli_onli = Q220,
-          religiosity = Q173, age = Q262, gender = Q260, employment = Q279, 
+          religiosity = Q172, age = Q262, gender = Q260, employment = Q279, 
           country = C_COW_ALPHA)
           
 ```
@@ -76,10 +74,9 @@ naming the attributes with meaningful names. 6 Wave
 library(dplyr)
 Wave_6_renamed <- Wave_6_selected %>%
    rename(happiness = V10, health = V11, free_choice = V55, life_satis = V23, 
-          financial_satis = V59, gen_trust = V24, armed_trust = V109, 
-          labor_trust = V112, court_trust = V114, gov_trust = V115, parties_trust = V116,
-          Parliament_trust = V117, sign_pet = V85, join_boycott = V86, attend_demo = V87,
-          join_strike = V88, religiosity = V147, age = V242, gender = V240,
+          financial_satis = V59, gen_trust = V24, sign_pet = V85, join_boycott = V86,
+          attend_demo = V87,
+          join_strike = V88, religiosity = V146, age = V242, gender = V240,
           employment = V229, country = C_COW_ALPHA)
           
 ```
@@ -110,7 +107,7 @@ merged_data <- merged_data[, !(names(merged_data) %in% c("org_poli_onli", "enc_p
                                                          "enc_poli"))]
 ```
 
-
+visualize the missing values for every attibute in the merged data.
 ```{r}
 library(ggplot2)
 
@@ -125,7 +122,7 @@ ggplot(missing_data_df, aes(x = variable, y = proportion)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
+specifying the location of the missing values within the attributes in the merged data.
 ``` {r}
 library(naniar)
 library(ggplot2)
@@ -151,6 +148,7 @@ by(merged_data, merged_data$country, missing_summary_and_visualization_by_countr
 
 ```
 
+calculating and printing the propotions of the missing data in the merged data.
 ```{r}
 library(dplyr)
 library(tidyr)
@@ -162,30 +160,31 @@ merged_data %>%
     .names = "{.col}_missing_proportion"
   )) -> missing_proportions
 
+
 # Print the result
 print(missing_proportions)
 ```
 
+visualize the missing data according to the attributes in merged data using dlookr library.
 ```{r}
 library(dlookr)
 plot_na_pareto(merged_data)
 plot_na_intersect(merged_data)
 ```
 
+a heat map for the miising data in the merged data.
 ```{r}
 library(naniar)
 gg_miss_fct(x = merged_data, fct = country)
 ```
 
-```{r}
-library(ggplot2)
-merged_data_na <- data.frame(merged_data)
-imputed_data <- imputate_na(merged_data_na, armed_trust, method = "mean")
-plot(merged_data_na)
-```
-
+creating a data frame to do iterations and imputation then do the missForest imputation method to handle the missing data.
 ```{r}
 library(missRanger)
+library(ggplot2)
+
+merged_data_na <- data.frame(merged_data)
+
 merged_imputet <- missRanger(
   merged_data_na, 
   formula = . ~ . ,
@@ -195,19 +194,7 @@ merged_imputet <- missRanger(
   returnOOB = T)
 ```
 
-```{r}
-library(ggplot2)
-library(dplyr)
-column_to_exclude <- "country"
-merged_imputet_rounded <- merged_imputet %>%
-  mutate(across(-all_of(column_to_exclude), round, 0))
-ggplot()+
-  geom_point(data = merged_imputet_rounded, aes(country, armed_trust), 
-             color = "red")+
-  geom_point(data = merged_data_na, aes(country, armed_trust))+
-  theme_minimal()
-```
-
+calculating and printing the propotions of the missing data in the merged data after the imputation.
 ```{r}
 library(dplyr)
 library(tidyr)
@@ -217,8 +204,312 @@ merged_imputet_rounded %>%
     .cols = everything(),
     .fns = ~ mean(is.na(.x)),
     .names = "{.col}_missing_proportion"
-  )) -> missing_proportions
+  )) -> missing_proportions_imputed
 
 # Print the result
-print(missing_proportions)
+print(missing_proportions_imputed)
+```
+
+comparison between the imputed and the original data for *all attributes* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+
+
+# Create a list to store plots
+plots <- list()
+
+# Generate bar charts for each column
+for (col in data_columns) {
+  unique_values <- unique(merged_data[[col]])
+  plot <- ggplot() +
+    geom_bar(data = merged_data, aes(x = factor(.data[[col]])), width = 0.3) +
+    geom_bar(data = merged_imputet_rounded, aes(x = factor(.data[[col]])), fill = "red",
+             position = position_nudge(x = 0.25), width = 0.3) +
+    scale_x_discrete(breaks = unique_values, labels = numeric_labels[match(unique_values, merged_data[[col]])]) +
+    labs(title = paste("Bar Chart for", col)) +
+    theme_minimal()
+  
+  plots[[col]] <- plot
+}
+
+# Print or display the generated plots
+for (col in data_columns) {
+  print(plots[[col]])
+}
+
+```
+
+
+comparison between the imputed and the original data for *religiosity* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Several times a day", "2"  = "Once a day",
+                    "3" = "Several times each week",
+                    "4" = "Only when attending religious services",
+                    "5" = "Only on special holy days", "6" = "Once a year",
+                    "7" = "Less often", "8" = "Never, practically never",
+                    "null" = "null")
+
+# Create the plot
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(religiosity)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(religiosity)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$religiosity), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *happiness* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Very happy", "2"  = "Quite happy", "3" = "Not very happy",
+                    "4" = "Not at all happy", "null" = "null")
+
+# Create the plot
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(happiness)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(happiness)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$happiness), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *free_choice* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "None at all", "2" = "2", "3" = "3", "4" = "4", "5" = "5",
+                    "6" = "6", "7" = "7", "8" = "8", "9" = "9",
+                    "10" = "A great deal", "null" = "null ")
+
+# Create the plot
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(free_choice)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(free_choice)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$free_choice), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *health* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Very good", "2" = "Good", "3" = "Fair",
+                    "4" = "Poor", "5" = "Very poor", "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(health)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(health)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$health), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *life_satis* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Completely dissatisfied", "2" = "2", "3" = "3",
+                    "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8",
+                    "9" = "9","10" = "Completely satisfied", "null" = "null")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(life_satis)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(life_satis)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$life_satis), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *financial_satis* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "dissatisfied", "2" = "2", "3" = "3",
+                    "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8",
+                    "9" = "9","10" = "satisfied", "null" = "null")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(financial_satis)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(financial_satis)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$financial_satis), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *gen_trust* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Most people can be trusted", "2" = "Need to be very careful",
+                    "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(gen_trust)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(gen_trust)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$gen_trust), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *sign_pet* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Have done", "2" = "Might do",
+                    "3" = "Would never do", "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(sign_pet)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(sign_pet)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$sign_pet), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *join_boycott* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Have done", "2" = "Might do",
+                    "3" = "Would never do", "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(join_boycott)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(join_boycott)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$join_boycott), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *attend_demo* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Have done", "2" = "Might do",
+                    "3" = "Would never do", "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(attend_demo)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(attend_demo)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$attend_demo), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *join_strike* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Have done", "2" = "Might do",
+                    "3" = "Would never do", "null" = "null ")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(join_strike)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(join_strike)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$join_strike), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
+```
+
+comparison between the imputed and the original data for *employment* by bar chart. *imputed in red*.
+```{r}
+library(ggplot2)
+library(scales)
+
+# Define the string labels and their corresponding numeric values
+numeric_labels <- c("1" = "Full time", "2" = "Part time", "3" = "Self employed",
+                    "4" = "Retired", "5" = "Housewife not otherwise employed",
+                    "6" = "Student", "7" = "Unemployed", "8" = "Other",
+                    "null" = "null")
+
+# Create the plot
+data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
+ggplot() +
+  geom_bar(data = merged_data, aes(x = factor(employment)), width = 0.3) +
+  geom_bar(data = merged_imputet_rounded, aes(x = factor(employment)), fill = "red",
+           position = position_nudge(x = 0.25), width = 0.3) +
+  scale_x_discrete(breaks = unique(merged_data$employment), 
+                   labels = numeric_labels) +  # Apply labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+
 ```
