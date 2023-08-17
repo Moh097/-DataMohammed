@@ -513,3 +513,326 @@ ggplot() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
 
 ```
+
+renaming the data in the data set.
+```{r}
+#=======employment==========================================================================
+employment_mapping <- c(
+  "1" = "Full time",
+  "2" = "Part time",
+  "3" = "Self employed",
+  "4" = "Retired",
+  "5" = "Housewife not otherwise employed",
+  "6" = "Student",
+  "7" = "Unemployed",
+  "8" = "Other",
+  "null" = "null"
+)
+#=======join_strike=========================================================================
+
+join_strike_mapping <- c(
+  "1" = "Have done",
+  "2" = "Might do",
+  "3" = "Would never do",
+  "null" = "null"
+)
+#=======attend_demo=========================================================================
+
+attend_demo_mapping <- c(
+  "1" = "Have done",
+  "2" = "Might do",
+  "3" = "Would never do",
+  "null" = "null"
+)
+#=======join_boycott========================================================================
+
+join_boycott_mapping <- c(
+  "1" = "Have done",
+  "2" = "Might do",
+  "3" = "Would never do",
+  "null" = "null"
+)
+#=======sign_pet============================================================================
+
+sign_pet_mapping <- c(
+  "1" = "Have done",
+  "2" = "Might do",
+  "3" = "Would never do",
+  "null" = "null"
+)
+#=======gen_trust===========================================================================
+
+gen_trust_mapping <- c(
+  "1" = "Most people can be trusted",
+  "2" = "Need to be very careful",
+  "null" = "null"
+)
+#=======financial_satis=====================================================================
+
+financial_satis_mapping <- c(
+  "1" = "Dissatisfied",
+  "2" = "2",
+  "3" = "3",
+  "4" = "4",
+  "5" = "5",
+  "6" = "6",
+  "7" = "7",
+  "8" = "8",
+  "9" = "9",
+  "10" = "Satisfied",
+  "null" = "null"
+)
+#=======life_satis==========================================================================
+
+life_satis_mapping <- c(
+  "1" = "compeltely dissatisfied",
+  "2" = "2",
+  "3" = "3",
+  "4" = "4",
+  "5" = "5",
+  "6" = "6",
+  "7" = "7",
+  "8" = "8",
+  "9" = "9",
+  "10" = "compeltely Satisfied",
+  "null" = "null"
+)
+#=======health============================================================================
+
+health_mapping <- c(
+  "1" = "Very good",
+  "2" = "Good",
+  "3" = "Fair",
+  "4" = "Poor",
+  "5" = "Very poor",
+  "null" = "null"
+)
+#=======free_choice=========================================================================
+
+free_choice_mapping <- c(
+  "1" = "None at all",
+  "2" = "2",
+  "3" = "3",
+  "4" = "4",
+  "5" = "5",
+  "6" = "6",
+  "7" = "7",
+  "8" = "8",
+  "9" = "9",
+  "10" = "A great deal",
+  "null" = "null"
+)
+#=======happiness===========================================================================
+
+happiness_mapping <- c(
+  "1" = "Very happy",
+  "2" = "Quite happy",
+  "3" = "Not very happy",
+  "4" = "Not at all happy",
+  "null" = "null"
+)
+#=======gender===========================================================================
+
+gender_mapping <- c(
+  "1" = "Male",
+  "2" = "Female",
+  "null" = "null"
+)
+
+#=======religiosity=========================================================================
+
+religiosity_mapping <- c(
+  "1" = "Several times a day",
+  "2"  = "Once a day",
+  "3" = "Several times each week",
+  "4" = "Only when attending religious services",
+  "5" = "Only on special holy days",
+  "6" = "Once a year",
+  "7" = "Less often",
+  "8" = "Never, practically never",
+  "null" = "null"
+)
+
+#=======adding changes to new data frame====================================================
+
+merged_renamed <- merged_imputet_rounded %>%
+  mutate(
+    employment = employment_mapping[as.character(employment)],
+    join_strike = join_strike_mapping[as.character(join_strike)],
+    attend_demo = attend_demo_mapping[as.character(attend_demo)],
+    join_boycott = join_boycott_mapping[as.character(join_boycott)],
+    sign_pet = sign_pet_mapping[as.character(sign_pet)],
+    gen_trust = gen_trust_mapping[as.character(gen_trust)],
+    financial_satis = financial_satis_mapping[as.character(financial_satis)],
+    life_satis = life_satis_mapping[as.character(life_satis)],
+    health = health_mapping[as.character(health)],
+    free_choice = free_choice_mapping[as.character(free_choice)],
+    happiness = happiness_mapping[as.character(happiness)],
+    gender = gender_mapping[as.character(gender)],
+    religiosity = religiosity_mapping[as.character(religiosity)]
+  )
+# Print the new dataframe
+print(merged_renamed)
+```
+
+calculating the descriptive statistics for the whole data.
+```{r}
+
+library(e1071)
+
+descriptive_summary <- function(data, variables) {
+  summaries <- list() # Initialize a list to store the summaries
+  
+  for (variable_name in variables) {
+    variable <- data[[variable_name]]
+    summary_list <- data.frame(
+      variable_name = variable_name,
+      mean = mean(variable, na.rm = TRUE),
+      median = median(variable, na.rm = TRUE),
+      mode = as.numeric(names(sort(table(variable), decreasing = TRUE)[1])),
+      variance = var(variable, na.rm = TRUE),
+      standard_deviation = sd(variable, na.rm = TRUE),
+      range = paste(range(variable, na.rm = TRUE), collapse = " - "),
+      iqr = IQR(variable, na.rm = TRUE),
+      skewness = skewness(variable, na.rm = TRUE),
+      kurtosis = kurtosis(variable, na.rm = TRUE)
+    )
+    
+    summaries[[variable_name]] <- summary_list # Add the summary list to the summaries list
+  }
+  
+  # Combine the summaries into a single data frame
+  summary_data <- do.call(rbind, summaries)
+  
+  return(summary_data)
+}
+
+variables <- c("happiness", "gen_trust", "health", "free_choice",
+               "life_satis", "financial_satis", "gen_trust",
+               "sign_pet", "join_boycott", "attend_demo",
+               "join_strike", "religiosity", 
+               "age", "gender", "employment") 
+
+# Example Usage
+variable_summary <- descriptive_summary(merged_imputet_rounded, variables)
+print(variable_summary)
+```
+
+calculating the descriptive data for each country and put it in a list of data frames.
+```{r}
+library(e1071)
+library(dplyr)
+
+descriptive_summary <- function(data, variables) {
+  country_summaries <- list() # Initialize a list to store country summaries
+  
+  for (country_name in unique(data$country)) {
+    country_data <- data %>%
+      filter(country == country_name)
+    
+    country_summary <- list()
+    
+    for (variable_name in variables) {
+      variable_summary <- country_data %>%
+        summarize(
+          variable_name = variable_name,
+          mean = mean(!!sym(variable_name), na.rm = TRUE),
+          median = median(!!sym(variable_name), na.rm = TRUE),
+          mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
+          variance = var(!!sym(variable_name), na.rm = TRUE),
+          standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),
+          range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),
+          iqr = IQR(!!sym(variable_name), na.rm = TRUE),
+          skewness = skewness(!!sym(variable_name), na.rm = TRUE),
+          kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)
+        )
+      
+      country_summary[[variable_name]] <- variable_summary
+    }
+    
+    country_summaries[[country_name]] <- country_summary
+  }
+  
+  return(country_summaries)
+}
+
+variables <- c("happiness", "gen_trust", "health", "free_choice",
+               "life_satis", "financial_satis", "gen_trust",
+               "sign_pet", "join_boycott", "attend_demo",
+               "join_strike", "religiosity", 
+               "age", "gender", "employment") 
+
+# Example Usage
+country_variable_summaries <- descriptive_summary(merged_imputet_rounded, variables)
+
+# Print summaries for a specific country and variable
+print(country_variable_summaries$CountryName$variable_name)
+
+```
+
+calculate the values separately and visualize it.
+```{r}
+# Load required libraries
+library(dplyr)
+library(moments)
+library(ggplot2)
+
+# Assuming your dataset is named "your_dataset"
+# Replace "your_dataset" with the actual name of your dataset
+
+country_data <- merged_imputet_rounded %>%
+  filter(country == "EGY")  # Filter data for EGY country
+
+# List of variable names to calculate statistics for
+variable_names <- c("happiness", "gen_trust", "health", "free_choice",
+                    "life_satis", "financial_satis", "gen_trust",
+                    "sign_pet", "join_boycott", "attend_demo",
+                    "join_strike", "religiosity", 
+                    "age", "gender", "employment")
+
+# Initialize an empty list to store results
+results_list <- list()
+
+# Loop through each variable and calculate statistics
+for (variable_name in variable_names) {
+  variable_stats <- country_data %>%
+    summarise(
+      variable_name = variable_name,
+      mean = mean(!!sym(variable_name), na.rm = TRUE),
+      median = median(!!sym(variable_name), na.rm = TRUE),
+      mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
+      variance = var(!!sym(variable_name), na.rm = TRUE),
+      standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),
+      range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),
+      iqr = IQR(!!sym(variable_name), na.rm = TRUE),
+      skewness = skewness(!!sym(variable_name), na.rm = TRUE),
+      kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)
+    )
+  
+  results_list[[variable_name]] <- variable_stats
+}
+
+# Combine results into a single data frame
+results_df <- bind_rows(results_list)
+
+# Print the results
+print(results_df)
+
+
+# List of variables to exclude
+excluded_variables <- c("age", "gender")
+
+# Filter out the excluded variables from the dataframe
+filtered_results <- results_df %>% filter(!variable_name %in% excluded_variables)
+
+# Create a bar chart for mean values
+mean_bar_chart <- ggplot(filtered_results, aes(x = variable_name, y = mean)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Mean Values for Different Variables (Excluding Age and Gender) in EGY Country",
+       x = "Variable", y = "Mean Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print the bar chart
+print(mean_bar_chart)
+```
