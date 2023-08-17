@@ -10,7 +10,6 @@ A code chunk only for libraries.
 rm(merged_data_new, merged_data_vis, merged_data_vis_2, merged_imputet_1, missing_proportions_new, Wave_6_new, Wave_6_selected_new, Wave_6_try, Wave_7_new, Wave_7_renamed_new, Wave_7_selected_new, Wave_7_try)
 ```
 
-
 taking only the 7 desired countries from the original dataset. 7 Wave
 ```{r}
 desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LIB")
@@ -43,7 +42,6 @@ Wave_7_selected <- subset(Wave_7, select = c("C_COW_ALPHA", "Q46",
 ```
 
 Take only specific columns after we extracted only the desired countries. 6 Wave
-
 ```{r cars}
 
 Wave_6_selected <- subset(Wave_6, select = c("C_COW_ALPHA", "V10", "V11", "V55", "V23",
@@ -52,9 +50,7 @@ Wave_6_selected <- subset(Wave_6, select = c("C_COW_ALPHA", "V10", "V11", "V55",
 
 ```
 
-
 naming the attributes with meaningful names. 7 Wave
-
 ```{r}
 library(dplyr)
 Wave_7_renamed <- Wave_7_selected %>%
@@ -69,7 +65,6 @@ Wave_7_renamed <- Wave_7_selected %>%
 ```
 
 naming the attributes with meaningful names. 6 Wave
-
 ```{r}
 library(dplyr)
 Wave_6_renamed <- Wave_6_selected %>%
@@ -835,4 +830,37 @@ mean_bar_chart <- ggplot(filtered_results, aes(x = variable_name, y = mean)) +
 
 # Print the bar chart
 print(mean_bar_chart)
+
+```
+
+```{r}
+library(writexl)
+
+
+# Initialize an empty list to store data frames
+summary_data_frames <- list()
+
+# Loop through each country
+for (country_name in names(country_variable_summaries)) {
+  country_data <- country_variable_summaries[[country_name]]
+  
+  # Convert the nested list of summary statistics to a data frame
+  country_df <- do.call(rbind, country_data)
+  
+  # Add a new column for the country name
+  country_df$CountryName <- country_name
+  
+  # Append the data frame to the list
+  summary_data_frames[[country_name]] <- country_df
+}
+
+# Combine data frames from different countries into one data frame
+combined_summary_df <- do.call(rbind, summary_data_frames)
+
+# Specify the path and file name for the Excel file
+excel_file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/summary_statistics.xlsx"
+
+# Export the combined data frame to an Excel file
+write_xlsx(combined_summary_df, path = excel_file_path)
+
 ```
