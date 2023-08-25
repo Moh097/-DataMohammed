@@ -758,7 +758,7 @@ variables <- c("happiness", "gen_trust", "health", "free_choice",
                "age", "gender", "employment") 
 
 # Example Usage
-country_variable_summaries <- descriptive_summary(merged_imputet_rounded, variables)
+country_variable_summaries <- descriptive_summary(merged_renamed, variables)
 
 # Print summaries for a specific country and variable
 print(country_variable_summaries$CountryName$variable_name)
