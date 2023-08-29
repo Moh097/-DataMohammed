@@ -7,12 +7,65 @@ output: html_document
 
 A code chunk only for libraries.
 ```{r}
+unique_dataset <- final_dataset %>% 
+  select(country, var) %>% 
+  distinct()
+
+# Print the unique dataset
+print(unique_dataset)
+names(final_dataset)
+```
+
+```{r}
+# Load the required library
+library(dplyr)
+
+# Your existing dataset is assumed to be 'merged_data' and your newly created dataset is 'filtered_data'
+
+# Create a mapping dataframe for country abbreviations and full names
+country_mapping <- data.frame(
+  country = c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB"),
+  countryname = c("Jordan", "Iraq", "Tunisia", "Morocco", "Egypt, Arab Rep.", "Lebanon", "Libya")
+)
+
+# Merge the mapping dataframe with the existing dataset to get full country names
+merged_data_with_fullnames <- left_join(merged_data, country_mapping, by = "country")
+
+# Merge to add the 'var' column from filtered_data
+final_dataset <- left_join(merged_data_with_fullnames, filtered_data[, c("countryname", "var")], by = "countryname")
+
+# Optionally, remove the 'countryname' column after the merging
+final_dataset$countryname <- NULL
+
+```
+
+
+```{r}
+# Load dplyr package
+library(dplyr)
+
+# Original dataset is wgidataset
+
+# Create a data frame containing the target countries and years
+target_data <- data.frame(
+  countryname = c("Egypt, Arab Rep.", "Iraq", "Jordan", "Lebanon", "Libya", "Morocco", "Tunisia"),
+  year = c(2016, 2016, 2016, 2016, 2017, 2016, 2016)
+)
+
+# Merge the original dataset (wgidataset) with target_data on 'countryname' and 'year'
+filtered_data <- wgidataset %>%
+  inner_join(target_data, by = c("countryname", "year")) %>%
+  select(countryname, year, var)  # select only the columns we need
+
+# View the filtered data
+print(filtered_data)
+
 
 ```
 
 taking only the 7 desired countries from the original data set. 7 Wave
 ```{r}
-desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LIB")
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB")
 
 # Filter the data for specific countries
 Wave_7 <- `WVS_Cross-National_Wave_7_v5_0`[`WVS_Cross-National_Wave_7_v5_0`$C_COW_ALPHA %in% desired_countries, ]
@@ -99,11 +152,25 @@ for (col in names(Wave_6_renamed)) {
 
 merge the two data sets.
 ```{r}
+# Load required libraries
 library(dplyr)
+
+# Create a mapping to align country codes
+country_mapping <- data.frame(original_country = c('LIB'), mapped_country = c('LBY'))
+
+# Apply the mapping to Wave_6_renamed dataset
+Wave_6_renamed <- Wave_6_renamed %>%
+  left_join(country_mapping, by = c("country" = "original_country")) %>%
+  mutate(country = coalesce(mapped_country, country)) %>%
+  select(-mapped_country)
+
+# Merge the datasets (Wave_6_renamed and Wave_7_renamed)
 merged_data <- bind_rows(Wave_6_renamed, Wave_7_renamed)
-merged_data <- merged_data[, !(names(merged_data) %in% c("org_poli_onli", "enc_poli_onli"
-                                                         , "sign_pet_onli", "donate",
-                                                         "enc_poli"))]
+
+# Remove unwanted columns
+merged_data <- merged_data[, !(names(merged_data) %in% c("org_poli_onli", "enc_poli_onli", "sign_pet_onli", "donate", "enc_poli"))]
+unique(merged_data$country)
+
 ```
 
 visualize the missing values for every attibute in the merged data.
@@ -188,7 +255,7 @@ creating a data frame to do iterations and imputation then do the missForest imp
 library(missRanger)
 library(ggplot2)
 
-merged_data_na <- data.frame(merged_data)
+merged_data_na <- data.frame(final_dataset)
 
 merged_imputet <- missRanger(
   merged_data_na, 
@@ -689,61 +756,59 @@ print(merged_renamed)
 
 calculating the descriptive statistics for the whole data.
 ```{r}
+library(dplyr)
+library(writexl)
 
-library(e1071)
-
-descriptive_summary <- function(data, variables) {
-  summaries <- list() # Initialize a list to store the summaries
-  
-  for (variable_name in variables) {
-    variable <- data[[variable_name]]
-    
-    # Check if the variable contains any missing values (NA)
-    if (any(is.na(variable))) {
-      cat("Skipping variable with missing values:", variable_name, "\n")
-      next
-    }
-    
-    summary_list <- data.frame(
+# Create a function to calculate descriptive statistics
+calculate_descriptive_stats <- function(data, variable_name) {
+  data %>%
+    group_by(country) %>%
+    summarise(
       variable_name = variable_name,
-      mean = mean(variable, na.rm = TRUE),
-      median = median(variable, na.rm = TRUE),
-      mode = as.numeric(names(sort(table(variable), decreasing = TRUE)[1])),
-      variance = var(variable, na.rm = TRUE),
-      standard_deviation = sd(variable, na.rm = TRUE),
-      range = paste(range(variable, na.rm = TRUE), collapse = " - "),
-      iqr = IQR(variable, na.rm = TRUE),
-      skewness = skewness(variable, na.rm = TRUE),
-      kurtosis = kurtosis(variable, na.rm = TRUE)
+      mean = mean(.data[[variable_name]], na.rm = TRUE),
+      median = median(.data[[variable_name]], na.rm = TRUE),
+      mode = as.numeric(names(sort(table(.data[[variable_name]]), decreasing = TRUE)[1])),
+      variance = var(.data[[variable_name]], na.rm = TRUE),
+      standard_deviation = sd(.data[[variable_name]], na.rm = TRUE),
+      range = paste(range(.data[[variable_name]], na.rm = TRUE), collapse = " - "),
+      iqr = IQR(.data[[variable_name]], na.rm = TRUE),
+      skewness = skewness(.data[[variable_name]], na.rm = TRUE),
+      kurtosis = kurtosis(.data[[variable_name]], na.rm = TRUE)
     )
-    
-    summaries[[variable_name]] <- summary_list # Add the summary list to the summaries list
-  }
-  
-  # Combine the summaries into a single data frame
-  summary_data <- do.call(rbind, summaries)
-  
-  return(summary_data)
 }
 
-variables <- c("happiness", "gen_trust", "health", "free_choice",
-               "life_satis", "financial_satis", "gen_trust",
-               "sign_pet", "join_boycott", "attend_demo",
-               "join_strike", "religiosity", 
-               "age", "gender", "employment") 
+# Create an empty data frame to store the results
+results_df <- data.frame()
 
-# Example Usage
-variable_summary <- descriptive_summary(merged_data, variables)
-print(variable_summary)
+# List of variables to include
+variables <- c(
+  "happiness", "gen_trust", "health", "free_choice", "life_satis",
+  "financial_satis", "gen_trust", "sign_pet", "join_boycott", "attend_demo",
+  "join_strike", "religiosity", "gender", "employment"
+)
+
+# Loop through variables and calculate descriptive stats
+for (variable in variables) {
+  descriptive_stats <- calculate_descriptive_stats(merged_data, variable)
+  results_df <- bind_rows(results_df, descriptive_stats)
+}
+
+# Save results to an Excel file (replace "descriptive_stats.xlsx" with your preferred filename)
+write_xlsx(results_df, "descriptive_stats.xlsx")
+
 ```
 
 calculating the descriptive data for each country and put it in a list of data frames.
 ```{r}
+# Load required libraries
 library(e1071)
 library(dplyr)
+library(openxlsx)
 
-descriptive_summary <- function(data, variables) {
-  country_summaries <- list() # Initialize a list to store country summaries
+# Function to calculate variable summaries by country and save in separate sheets
+descriptive_summary <- function(data, variables, output_file) {
+  # Initialize a new Excel workbook
+  wb <- createWorkbook()
   
   for (country_name in unique(data$country)) {
     country_data <- data %>%
@@ -760,23 +825,32 @@ descriptive_summary <- function(data, variables) {
                 across(all_of(variables), .names = "skewness_{.col}", skewness, na.rm = TRUE),
                 across(all_of(variables), .names = "kurtosis_{.col}", kurtosis, na.rm = TRUE))
     
-    country_summaries[[country_name]] <- country_summary
+    # Create a new sheet with the country name
+    addWorksheet(wb, sheetName = country_name)
+    
+    # Write the summary data to the sheet
+    writeData(wb, sheet = country_name, x = country_summary)
   }
   
-  return(country_summaries)
+  # Save the workbook to the specified output file
+  saveWorkbook(wb, file = output_file)
+  
+  cat("Summary data has been saved to the following Excel file:\n")
+  cat(output_file)
 }
 
+# Define the file path for the Excel file
+file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/country_variable_summaries.xlsx"
+
+# List of variables for summaries
 variables <- c("happiness", "gen_trust", "health", "free_choice",
                "life_satis", "financial_satis", "gen_trust",
                "sign_pet", "join_boycott", "attend_demo",
                "join_strike", "religiosity", 
                "age", "gender", "employment") 
 
-# Example Usage
-country_variable_summaries <- descriptive_summary(merged_data, variables)
-
-# Print summaries for a specific country and variable
-print(country_variable_summaries$CountryName$variable_name)
+# Generate the summaries and save in separate sheets
+descriptive_summary(merged_data, variables, output_file = file_path)
 
 ```
 
@@ -846,40 +920,87 @@ mean_bar_chart <- ggplot(filtered_results, aes(x = variable_name, y = mean)) +
 # Print the bar chart
 print(mean_bar_chart)
 
-```
-
-```{r}
 library(writexl)
 
+# Define the file path for the Excel file
+file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/statistics_results.xlsx"
 
-# Initialize an empty list to store data frames
-summary_data_frames <- list()
+# Write the data frame to the specified Excel file path
+write_xlsx(filtered_results, path = file_path)
 
-# Loop through each country
-for (country_name in names(country_variable_summaries)) {
-  country_data <- country_variable_summaries[[country_name]]
-  
-  # Convert the nested list of summary statistics to a data frame
-  country_df <- do.call(rbind, country_data)
-  
-  # Add a new column for the country name
-  country_df$CountryName <- country_name
-  
-  # Append the data frame to the list
-  summary_data_frames[[country_name]] <- country_df
-}
 
-# Combine data frames from different countries into one data frame
-combined_summary_df <- do.call(rbind, summary_data_frames)
-
-# Specify the path and file name for the Excel file
-excel_file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/summary_statistics.xlsx"
-
-# Export the combined data frame to an Excel file
-write_xlsx(combined_summary_df, path = excel_file_path)
 
 ```
 
+multilevel analysis
 ```{r}
+# Load necessary packages
+library(lme4)
+library(tidyverse)
+model1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + 
+               gen_trust + age + gender + employment + religiosity + 
+               (1|country) + var, data = final_dataset)
+```
+
+
+```{r}
+model1_adv <- lmer(sign_pet ~ happiness * var + health + free_choice + life_satis + financial_satis + 
+                   gen_trust + age * gender + employment + religiosity + 
+                   (1 + happiness + age|country), 
+                   data = final_dataset)
+summary(model1_adv)
+
+```
+
+
+```{r}
+# Load the required packages
+library(lme4)
+library(lmerTest)
+
+# Load the dataset
+
+# Fit the multivariate multilevel model
+model <- lmer(cbind(sign_pet, join_boycott, attend_demo, join_strike) ~ 
+              happiness + health + free_choice + life_satis + financial_satis +
+              gen_trust + age + gender + employment + religiosity + 
+              (1 + happiness + health + free_choice + life_satis + financial_satis | country) +
+              (1 | var), 
+              data = final_dataset)
+
+# Show the model summary
+summary(model)
+
+# Produce various diagnostic plots
+plot(model)
+```
+
+
+```{r}
+fit1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + (1 | country/var), data = final_dataset)
+summary(fit1)
+
+```
+
+
+```{r}
+# Load the required packages
+library(lme4)
+library(lmerTest)
+
+# Load your dataset
+# final_dataset <- read.csv("path/to/your/dataset.csv")
+
+# Fit the multivariate multilevel models
+fit1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
+fit2 <- lmer(join_boycott ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
+fit3 <- lmer(attend_demo ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
+fit4 <- lmer(join_strike ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
+
+# Summarize the results
+summary(fit1)
+summary(fit2)
+summary(fit3)
+summary(fit4)
 
 ```
