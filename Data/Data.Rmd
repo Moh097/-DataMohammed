@@ -7,10 +7,10 @@ output: html_document
 
 A code chunk only for libraries.
 ```{r}
-rm(merged_data_new, merged_data_vis, merged_data_vis_2, merged_imputet_1, missing_proportions_new, Wave_6_new, Wave_6_selected_new, Wave_6_try, Wave_7_new, Wave_7_renamed_new, Wave_7_selected_new, Wave_7_try)
+
 ```
 
-taking only the 7 desired countries from the original dataset. 7 Wave
+taking only the 7 desired countries from the original data set. 7 Wave
 ```{r}
 desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LBN", "LIB")
 
@@ -36,17 +36,21 @@ Wave_7_selected <- subset(Wave_7, select = c("C_COW_ALPHA", "Q46",
                                                                 "Q47", "Q48", "Q49",
                                              "Q50", "Q57", "Q209", "Q210", "Q211", "Q212",
                                              "Q213",
-                                             "Q215", "Q218", "Q219", "Q220", "Q172",
+                                             "Q215", "Q218", "Q219", "Q220", "Q173",
                                              "Q262", "Q260", "Q279"))
 
 ```
 
+```{r}
+
+```
+
 Take only specific columns after we extracted only the desired countries. 6 Wave
-```{r cars}
+```{r}
 
 Wave_6_selected <- subset(Wave_6, select = c("C_COW_ALPHA", "V10", "V11", "V55", "V23",
                                              "V59", "V24", "V85", "V86", "V87", "V88",
-                                             "V146","V242", "V240", "V229"))
+                                             "V147","V242", "V240", "V229"))
 
 ```
 
@@ -59,7 +63,7 @@ Wave_7_renamed <- Wave_7_selected %>%
           sign_pet = Q209, join_boycott = Q210,
           attend_demo = Q211, join_strike = Q212, donate = Q213, enc_poli = Q215, 
           sign_pet_onli = Q218, enc_poli_onli = Q219, org_poli_onli = Q220,
-          religiosity = Q172, age = Q262, gender = Q260, employment = Q279, 
+          religiosity = Q173, age = Q262, gender = Q260, employment = Q279 , 
           country = C_COW_ALPHA)
           
 ```
@@ -71,7 +75,7 @@ Wave_6_renamed <- Wave_6_selected %>%
    rename(happiness = V10, health = V11, free_choice = V55, life_satis = V23, 
           financial_satis = V59, gen_trust = V24, sign_pet = V85, join_boycott = V86,
           attend_demo = V87,
-          join_strike = V88, religiosity = V146, age = V242, gender = V240,
+          join_strike = V88, religiosity = V147, age = V242, gender = V240,
           employment = V229, country = C_COW_ALPHA)
           
 ```
@@ -146,7 +150,9 @@ by(merged_data, merged_data$country, missing_summary_and_visualization_by_countr
 calculating and printing the propotions of the missing data in the merged data.
 ```{r}
 library(dplyr)
-library(tidyr)
+library(writexl)
+
+# Your existing code for summarizing missing proportions
 merged_data %>%
   group_by(country) %>%
   summarise(across(
@@ -155,9 +161,13 @@ merged_data %>%
     .names = "{.col}_missing_proportion"
   )) -> missing_proportions
 
+# Specify the file path where you want to save the Excel file
+output_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/missing_proportion.xlsx"
 
-# Print the result
-print(missing_proportions)
+# Save the summarized data to an Excel file
+write_xlsx(missing_proportions, path = output_path)
+
+cat("Excel file saved at:", output_path, "\n")
 ```
 
 visualize the missing data according to the attributes in merged data using dlookr library.
@@ -213,7 +223,6 @@ library(scales)
 # Create the plot
 data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
 
-
 # Create a list to store plots
 plots <- list()
 
@@ -231,10 +240,21 @@ for (col in data_columns) {
   plots[[col]] <- plot
 }
 
-# Print or display the generated plots
+# Specify the file path where you want to save the PDF file
+output_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/plots.pdf"
+
+# Create a PDF device
+pdf(output_path)
+
+# Print or display the generated plots and save them in the PDF
 for (col in data_columns) {
   print(plots[[col]])
 }
+
+# Close the PDF device
+dev.off()
+
+cat("PDF file saved at:", output_path, "\n")
 
 ```
 
@@ -314,7 +334,7 @@ library(scales)
 
 # Define the string labels and their corresponding numeric values
 numeric_labels <- c("1" = "Very good", "2" = "Good", "3" = "Fair",
-                    "4" = "Poor", "5" = "Very poor", "null" = "null ")
+                    "4" = "Poor", "null" = "null ")
 
 # Create the plot
 data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
@@ -481,7 +501,7 @@ ggplot() +
   scale_x_discrete(breaks = unique(merged_data$join_strike), 
                    labels = numeric_labels) +  # Apply labels
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
 
 ```
 
@@ -493,8 +513,7 @@ library(scales)
 # Define the string labels and their corresponding numeric values
 numeric_labels <- c("1" = "Full time", "2" = "Part time", "3" = "Self employed",
                     "4" = "Retired", "5" = "Housewife not otherwise employed",
-                    "6" = "Student", "7" = "Unemployed", "8" = "Other",
-                    "null" = "null")
+                    "6" = "Student", "7" = "Unemployed", "null" = "null")
 
 # Create the plot
 data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
@@ -520,7 +539,6 @@ employment_mapping <- c(
   "5" = "Housewife not otherwise employed",
   "6" = "Student",
   "7" = "Unemployed",
-  "8" = "Other",
   "null" = "null"
 )
 #=======join_strike=========================================================================
@@ -599,7 +617,6 @@ health_mapping <- c(
   "2" = "Good",
   "3" = "Fair",
   "4" = "Poor",
-  "5" = "Very poor",
   "null" = "null"
 )
 #=======free_choice=========================================================================
@@ -680,6 +697,13 @@ descriptive_summary <- function(data, variables) {
   
   for (variable_name in variables) {
     variable <- data[[variable_name]]
+    
+    # Check if the variable contains any missing values (NA)
+    if (any(is.na(variable))) {
+      cat("Skipping variable with missing values:", variable_name, "\n")
+      next
+    }
+    
     summary_list <- data.frame(
       variable_name = variable_name,
       mean = mean(variable, na.rm = TRUE),
@@ -709,7 +733,7 @@ variables <- c("happiness", "gen_trust", "health", "free_choice",
                "age", "gender", "employment") 
 
 # Example Usage
-variable_summary <- descriptive_summary(merged_imputet_rounded, variables)
+variable_summary <- descriptive_summary(merged_data, variables)
 print(variable_summary)
 ```
 
@@ -725,25 +749,16 @@ descriptive_summary <- function(data, variables) {
     country_data <- data %>%
       filter(country == country_name)
     
-    country_summary <- list()
-    
-    for (variable_name in variables) {
-      variable_summary <- country_data %>%
-        summarize(
-          variable_name = variable_name,
-          mean = mean(!!sym(variable_name), na.rm = TRUE),
-          median = median(!!sym(variable_name), na.rm = TRUE),
-          mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
-          variance = var(!!sym(variable_name), na.rm = TRUE),
-          standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),
-          range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),
-          iqr = IQR(!!sym(variable_name), na.rm = TRUE),
-          skewness = skewness(!!sym(variable_name), na.rm = TRUE),
-          kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)
-        )
-      
-      country_summary[[variable_name]] <- variable_summary
-    }
+    country_summary <- country_data %>%
+      summarize(across(all_of(variables), .names = "mean_{.col}", mean, na.rm = TRUE),
+                across(all_of(variables), .names = "median_{.col}", median, na.rm = TRUE),
+                across(all_of(variables), .names = "mode_{.col}", ~as.numeric(names(sort(table(.x), decreasing = TRUE)[1]))),
+                across(all_of(variables), .names = "variance_{.col}", var, na.rm = TRUE),
+                across(all_of(variables), .names = "sd_{.col}", sd, na.rm = TRUE),
+                across(all_of(variables), .names = "range_{.col}", ~paste(range(.x, na.rm = TRUE), collapse = " - ")),
+                across(all_of(variables), .names = "iqr_{.col}", IQR, na.rm = TRUE),
+                across(all_of(variables), .names = "skewness_{.col}", skewness, na.rm = TRUE),
+                across(all_of(variables), .names = "kurtosis_{.col}", kurtosis, na.rm = TRUE))
     
     country_summaries[[country_name]] <- country_summary
   }
@@ -758,7 +773,7 @@ variables <- c("happiness", "gen_trust", "health", "free_choice",
                "age", "gender", "employment") 
 
 # Example Usage
-country_variable_summaries <- descriptive_summary(merged_renamed, variables)
+country_variable_summaries <- descriptive_summary(merged_data, variables)
 
 # Print summaries for a specific country and variable
 print(country_variable_summaries$CountryName$variable_name)
@@ -862,5 +877,9 @@ excel_file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/summary_statistics
 
 # Export the combined data frame to an Excel file
 write_xlsx(combined_summary_df, path = excel_file_path)
+
+```
+
+```{r}
 
 ```
