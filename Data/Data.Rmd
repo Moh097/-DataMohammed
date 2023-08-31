@@ -740,107 +740,8 @@ merged_renamed <- merged_imputet_rounded %>%
 print(merged_renamed)
 ```
 
-calculating the descriptive statistics for the whole data.
-```{r}
-library(dplyr)
-library(writexl)
 
-# Create a function to calculate descriptive statistics
-calculate_descriptive_stats <- function(data, variable_name) {
-  data %>%
-    group_by(country) %>%
-    summarise(
-      variable_name = variable_name,
-      mean = mean(.data[[variable_name]], na.rm = TRUE),
-      median = median(.data[[variable_name]], na.rm = TRUE),
-      mode = as.numeric(names(sort(table(.data[[variable_name]]), decreasing = TRUE)[1])),
-      variance = var(.data[[variable_name]], na.rm = TRUE),
-      standard_deviation = sd(.data[[variable_name]], na.rm = TRUE),
-      range = paste(range(.data[[variable_name]], na.rm = TRUE), collapse = " - "),
-      iqr = IQR(.data[[variable_name]], na.rm = TRUE),
-      skewness = skewness(.data[[variable_name]], na.rm = TRUE),
-      kurtosis = kurtosis(.data[[variable_name]], na.rm = TRUE)
-    )
-}
-
-# Create an empty data frame to store the results
-results_df <- data.frame()
-
-# List of variables to include
-variables <- c(
-  "happiness", "gen_trust", "health", "free_choice", "life_satis",
-  "financial_satis", "gen_trust", "sign_pet", "join_boycott", "attend_demo",
-  "join_strike", "religiosity", "gender", "employment"
-)
-
-# Loop through variables and calculate descriptive stats
-for (variable in variables) {
-  descriptive_stats <- calculate_descriptive_stats(merged_data, variable)
-  results_df <- bind_rows(results_df, descriptive_stats)
-}
-
-# Save results to an Excel file (replace "descriptive_stats.xlsx" with your preferred filename)
-write_xlsx(results_df, "descriptive_stats.xlsx")
-
-```
-
-calculating the descriptive data for each country and put it in a list of data frames.
-```{r}
-# Load required libraries
-library(e1071)
-library(dplyr)
-library(openxlsx)
-
-# Function to calculate variable summaries by country and save in separate sheets
-descriptive_summary <- function(data, variables, output_file) {
-  # Initialize a new Excel workbook
-  wb <- createWorkbook()
-  
-  for (country_name in unique(data$country)) {
-    country_data <- data %>%
-      filter(country == country_name)
-    
-    country_summary <- country_data %>%
-      summarize(across(all_of(variables), .names = "mean_{.col}", mean, na.rm = TRUE),
-                across(all_of(variables), .names = "median_{.col}", median, na.rm = TRUE),
-                across(all_of(variables), .names = "mode_{.col}", ~as.numeric(names(sort(table(.x), decreasing = TRUE)[1]))),
-                across(all_of(variables), .names = "variance_{.col}", var, na.rm = TRUE),
-                across(all_of(variables), .names = "sd_{.col}", sd, na.rm = TRUE),
-                across(all_of(variables), .names = "range_{.col}", ~paste(range(.x, na.rm = TRUE), collapse = " - ")),
-                across(all_of(variables), .names = "iqr_{.col}", IQR, na.rm = TRUE),
-                across(all_of(variables), .names = "skewness_{.col}", skewness, na.rm = TRUE),
-                across(all_of(variables), .names = "kurtosis_{.col}", kurtosis, na.rm = TRUE))
-    
-    # Create a new sheet with the country name
-    addWorksheet(wb, sheetName = country_name)
-    
-    # Write the summary data to the sheet
-    writeData(wb, sheet = country_name, x = country_summary)
-  }
-  
-  # Save the workbook to the specified output file
-  saveWorkbook(wb, file = output_file)
-  
-  cat("Summary data has been saved to the following Excel file:\n")
-  cat(output_file)
-}
-
-# Define the file path for the Excel file
-file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/country_variable_summaries.xlsx"
-
-# List of variables for summaries
-variables <- c("happiness", "gen_trust", "health", "free_choice",
-               "life_satis", "financial_satis", "gen_trust",
-               "sign_pet", "join_boycott", "attend_demo",
-               "join_strike", "religiosity", 
-               "age", "gender", "employment") 
-
-# Generate the summaries and save in separate sheets
-descriptive_summary(merged_data, variables, output_file = file_path)
-
-```
-
-calculate the values separately and visualize it.
+calculate the descriptive statistics.
 ```{r}
 # Load required libraries
 library(dplyr)
@@ -914,6 +815,71 @@ file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/statistics_results.xlsx"
 # Write the data frame to the specified Excel file path
 write_xlsx(filtered_results, path = file_path)
 
+```
+
+calculate the descriptive statistics. for each country seperately. 
+```{r}
+# Load required libraries
+# Load required libraries
+# Load required libraries
+library(dplyr)
+library(moments)
+library(writexl)
+
+# Assuming your dataset is named "merged_imputet_rounded"
+# Replace "merged_imputet_rounded" with the actual name of your dataset
+
+# List of country codes
+country_codes <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
+
+# List of variable names to calculate statistics for
+variable_names <- c("happiness", "gen_trust", "health", "free_choice",
+                    "life_satis", "financial_satis", "gen_trust",
+                    "sign_pet", "join_boycott", "attend_demo",
+                    "join_strike", "religiosity", 
+                    "age", "gender", "employment")
+
+# Create a new Excel workbook
+wb <- createWorkbook()
+
+# Loop through each country
+for (country_code in country_codes) {
+  country_data <- merged_imputet_rounded %>%
+    filter(country == country_code)  # Filter data for the current country
+
+  # Initialize an empty list to store results for the current country
+  country_results <- list()
+
+  # Loop through each variable and calculate statistics for the current country
+  for (variable_name in variable_names) {
+    variable_stats <- country_data %>%
+      summarise(
+        variable_name = variable_name,
+        mean = mean(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        median = median(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
+        variance = var(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),  # Add na.rm = TRUE
+        iqr = IQR(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        skewness = skewness(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)  # Add na.rm = TRUE
+      )
+    
+    # Append variable statistics to the country's results
+    country_results[[variable_name]] <- variable_stats
+  }
+
+  # Combine results for the current country into a single data frame
+  country_results_df <- bind_rows(country_results)
+
+  # Add the country's statistics to a new sheet in the Excel workbook
+  addWorksheet(wb, sheetName = country_code)
+  writeData(wb, sheet = country_code, x = country_results_df, startCol = 1, startRow = 1)
+}
+
+# Save the Excel workbook with statistics for all countries
+saveWorkbook(wb, "statistics_all_countries.xlsx")
 
 
 ```
@@ -935,7 +901,6 @@ model1_adv <- lmer(sign_pet ~ happiness * var + health + free_choice + life_sati
                    (1 + happiness + age|country), 
                    data = final_dataset)
 summary(model1_adv)
-
 ```
 
 
@@ -988,5 +953,223 @@ summary(fit1)
 summary(fit2)
 summary(fit3)
 summary(fit4)
+
+uniq(final_dataset$country)
+
+```
+
+```{r}
+# Load the required packages
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(openxlsx)
+
+# Assuming your dataset is stored in a variable called 'final_dataset'
+# Subset only the relevant variables for correlation
+final_dataset_subset <- final_dataset %>%
+  select(country, happiness, health, free_choice, life_satis, financial_satis, 
+         gen_trust, age, gender, employment, sign_pet, 
+         join_boycott, attend_demo, join_strike, religiosity)
+
+# Define the list of countries
+countries <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
+
+# Create an Excel workbook
+wb <- createWorkbook()
+
+# Generate and add a sheet for each country's correlation matrix
+for (country_name in countries) {
+  
+  # Filter the data for each country
+  country_data <- final_dataset_subset %>%
+    filter(country == country_name) %>%
+    select(-country)
+  
+  # Calculate the correlation matrix
+  country_cor_matrix <- cor(country_data, use = "complete.obs", method = "pearson")
+  
+  # Create a sheet for the country's data in the Excel workbook
+  addWorksheet(wb, sheetName = country_name)
+  
+  # Write the correlation matrix to the sheet
+  writeData(wb, sheet = country_name, x = country_cor_matrix)
+  
+  # Add a column with variable names on the left side of the matrix
+  variable_names <- colnames(country_cor_matrix)
+  writeData(wb, sheet = country_name, x = variable_names, startCol = 1, startRow = 2)
+}
+
+# Save the Excel workbook to a file
+saveWorkbook(wb, "correlation_matrices_with_variables.xlsx")
+```
+
+
+```{r}
+# Load the required packages
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(openxlsx)
+
+# Assuming your dataset is stored in a variable called 'final_dataset'
+# Subset only the relevant variables for correlation
+final_dataset_subset <- final_dataset %>%
+  select(country, happiness, health, free_choice, life_satis, financial_satis, 
+         gen_trust, age, gender, employment, sign_pet, 
+         join_boycott, attend_demo, join_strike, religiosity)
+
+# Calculate the correlation matrix across all countries
+cor_matrix <- cor(final_dataset_subset %>%
+                    select(-country), use = "complete.obs", method = "pearson")
+
+# Create an Excel workbook
+wb <- createWorkbook()
+
+# Create a sheet for the correlation matrix
+addWorksheet(wb, sheetName = "Correlation Matrix")
+
+# Write the correlation matrix to the sheet
+writeData(wb, sheet = "Correlation Matrix", x = cor_matrix)
+
+# Add a column with variable names on the left side of the matrix
+variable_names <- colnames(cor_matrix)
+writeData(wb, sheet = "Correlation Matrix", x = variable_names, startCol = 1, startRow = 2)
+
+# Save the Excel workbook to a file
+saveWorkbook(wb, "correlation_matrix_across_countries_with_variables.xlsx")
+
+
+```
+
+```{r}
+# Load necessary packages
+library(ppcor)
+
+# Simulate your dataset or read it
+# final_dataset <- read.csv("your_file.csv")
+
+# List of countries
+countries <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
+
+# Variables of interest
+iv_vars <- c("happiness", "health", "free_choice", "life_satis", "financial_satis")
+dv_vars <- c("join_boycott", "attend_demo", "join_strike", "religiosity")
+control_vars <- c("gen_trust", "age", "gender", "employment", "sign_pet")
+
+# Loop through each country
+for (cty in countries) {
+  subset_data <- subset(final_dataset, country == cty)
+  
+  # Remove rows with NA
+  subset_data <- na.omit(subset_data)
+  
+  # Create a dataframe of IV and DV
+  all_vars <- c(iv_vars, dv_vars, control_vars)
+  df <- subset_data[, all_vars]
+  
+  # Compute partial correlations using GLM
+  partial_correlations <- matrix(NA, length(iv_vars), length(dv_vars))
+  colnames(partial_correlations) <- dv_vars
+  rownames(partial_correlations) <- iv_vars
+
+  for (iv in iv_vars) {
+    for (dv in dv_vars) {
+      fit <- lm(paste(dv, "~", iv, "+", paste(control_vars, collapse = " + ")), data = df)
+      partial_correlations[iv, dv] <- summary(fit)$coefficients[2, "Estimate"]
+    }
+  }
+  
+  # Print the result
+  cat("\nPartial Correlation Matrix for", cty, "\n")
+  print(partial_correlations)
+}
+
+
+```
+
+
+
+
+```{r}
+
+library(ggcorrplot)
+# Create the plot
+  ggcorrplot(country_cor_matrix, 
+             hc.order = TRUE, 
+             type = "lower", 
+             lab = TRUE, 
+             lab_size = 3, 
+             outline.col = "white", 
+             ggtheme = ggplot2::theme_minimal()) +
+    ggtitle(paste("Correlation Matrix for Country:", country_name)) +
+    theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+```{r}
+library(brms)
+# Define the Bayesian Multivariate Multilevel Model
+formula <- bf(join_boycott ~ happiness + health + free_choice + life_satis + financial_satis + 
+                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
+            bf(attend_demo ~ happiness + health + free_choice + life_satis + financial_satis + 
+                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
+            bf(join_strike ~ happiness + health + free_choice + life_satis + financial_satis + 
+                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
+            bf(religiosity ~ happiness + health + free_choice + life_satis + financial_satis + 
+                            gen_trust + age + gender + employment + sign_pet + (1|country))
+
+# Run the model
+fit <- brm(formula, data = final_dataset, cores = 4, iter = 2000)
+
+# Show summary
+summary(fit)
+
+```
+
+```{r}
+# Install and load the required packages
+library(Hmisc)
+library(openxlsx)
+
+# Create an empty workbook
+wb <- createWorkbook()
+
+# List of unique countries
+unique_countries <- unique(final_dataset$country)
+
+# Loop through each country
+for (ctry in unique_countries) {
+  # Subset data for each country
+  subset_data <- subset(final_dataset, country == ctry)
+  
+  # Variables of interest
+  var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
+                       "gen_trust", "age", "gender", "employment", "sign_pet",
+                       "join_boycott", "attend_demo", "join_strike", "religiosity")
+  
+  # Generate correlation matrix and p-values
+  corr_object <- rcorr(as.matrix(subset_data[, var_of_interest]))
+  
+  # Extract the correlation matrix and p-values
+  corr_matrix <- corr_object$r
+  p_values <- corr_object$P
+  
+  # Create a new sheet in the workbook for each country
+  addWorksheet(wb, sheetName = ctry)
+  
+  # Write the correlation matrix with variable names on the left side
+  writeData(wb, sheet = ctry, x = cbind(variables = rownames(corr_matrix), corr_matrix))
+  
+  # Calculate the number of rows in the correlation matrix
+  num_rows <- nrow(corr_matrix)
+  
+  # Write p-values in a table below the correlation matrix
+  writeData(wb, sheet = ctry, x = cbind(variables = rownames(p_values), p_values), startRow = num_rows + 3)
+}
+
+# Save workbook (you can choose your own file name and path)
+saveWorkbook(wb, "Correlation_and_Pvalues_By_Country.xlsx", overwrite = TRUE)
+
 
 ```
