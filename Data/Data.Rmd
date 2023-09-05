@@ -7,61 +7,10 @@ output: html_document
 
 A code chunk only for libraries.
 ```{r}
-unique_dataset <- final_dataset %>% 
-  select(country, var) %>% 
-  distinct()
-
-# Print the unique dataset
-print(unique_dataset)
-names(final_dataset)
-```
-
-```{r}
-# Load the required library
-library(dplyr)
-
-# Your existing dataset is assumed to be 'merged_data' and your newly created dataset is 'filtered_data'
-
-# Create a mapping dataframe for country abbreviations and full names
-country_mapping <- data.frame(
-  country = c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB"),
-  countryname = c("Jordan", "Iraq", "Tunisia", "Morocco", "Egypt, Arab Rep.", "Lebanon", "Libya")
-)
-
-# Merge the mapping dataframe with the existing dataset to get full country names
-merged_data_with_fullnames <- left_join(merged_data, country_mapping, by = "country")
-
-# Merge to add the 'var' column from filtered_data
-final_dataset <- left_join(merged_data_with_fullnames, filtered_data[, c("countryname", "var")], by = "countryname")
-
-# Optionally, remove the 'countryname' column after the merging
-final_dataset$countryname <- NULL
-
-```
-
-
-```{r}
-# Load dplyr package
-library(dplyr)
-
-# Original dataset is wgidataset
-
-# Create a data frame containing the target countries and years
-target_data <- data.frame(
-  countryname = c("Egypt, Arab Rep.", "Iraq", "Jordan", "Lebanon", "Libya", "Morocco", "Tunisia"),
-  year = c(2016, 2016, 2016, 2016, 2017, 2016, 2016)
-)
-
-# Merge the original dataset (wgidataset) with target_data on 'countryname' and 'year'
-filtered_data <- wgidataset %>%
-  inner_join(target_data, by = c("countryname", "year")) %>%
-  select(countryname, year, var)  # select only the columns we need
-
-# View the filtered data
-print(filtered_data)
 
 
 ```
+
 
 # List of specific countries
 
@@ -174,31 +123,6 @@ ggplot(missing_data_df, aes(x = variable, y = proportion)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-specifying the location of the missing values within the attributes in the merged data.
-``` {r}
-library(naniar)
-library(ggplot2)
-
-# Function to summarize and visualize missing data for each country
-missing_summary_and_visualization_by_country <- function(merged_data) {
-  country <- unique(merged_data$country)[1]
-  missing_summary <- sapply(merged_data, function(x) sum(is.na(x)))
-  print(paste("Missing data summary for", country, ":"))
-  print(missing_summary)
-  
-  plot <- naniar::vis_miss(merged_data) + 
-    ggtitle(paste("Missing Data Visualization for", country)) +
-    theme_minimal() +
-    theme(plot.margin = margin(t = 0.5, r = 0.5, b = 2, l = 0.5, unit = "cm"),
-          axis.text.x = element_text(angle = 90, hjust = 1))  # Adjust angle and bottom margin
-  
-  print(plot)
-}
-
-# Apply the function to each subset of the data, grouped by country
-by(merged_data, merged_data$country, missing_summary_and_visualization_by_country)
-
-```
 
 calculating and printing the propotions of the missing data in the merged data.
 ```{r}
@@ -228,357 +152,6 @@ visualize the missing data according to the attributes in merged data using dloo
 library(dlookr)
 plot_na_pareto(merged_data)
 plot_na_intersect(merged_data)
-```
-
-a heat map for the miising data in the merged data.
-```{r}
-library(naniar)
-gg_miss_fct(x = merged_data, fct = country)
-```
-
-creating a data frame to do iterations and imputation then do the missForest imputation method to handle the missing data.
-```{r}
-library(missRanger)
-library(ggplot2)
-
-merged_data_na <- data.frame(final_dataset)
-
-merged_imputet <- missRanger(
-  merged_data_na, 
-  formula = . ~ . ,
-  num.trees = 1000, 
-  verbose = 2, 
-  seed = 111,  
-  returnOOB = T)
-```
-
-calculating and printing the propotions of the missing data in the merged data after the imputation.
-```{r}
-library(dplyr)
-library(tidyr)
-merged_imputet_rounded %>%
-  group_by(country) %>%
-  summarise(across(
-    .cols = everything(),
-    .fns = ~ mean(is.na(.x)),
-    .names = "{.col}_missing_proportion"
-  )) -> missing_proportions_imputed
-
-# Print the result
-print(missing_proportions_imputed)
-```
-
-comparison between the imputed and the original data for *all attributes* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-
-# Create a list to store plots
-plots <- list()
-
-# Generate bar charts for each column
-for (col in data_columns) {
-  unique_values <- unique(merged_data[[col]])
-  plot <- ggplot() +
-    geom_bar(data = merged_data, aes(x = factor(.data[[col]])), width = 0.3) +
-    geom_bar(data = merged_imputet_rounded, aes(x = factor(.data[[col]])), fill = "red",
-             position = position_nudge(x = 0.25), width = 0.3) +
-    scale_x_discrete(breaks = unique_values, labels = numeric_labels[match(unique_values, merged_data[[col]])]) +
-    labs(title = paste("Bar Chart for", col)) +
-    theme_minimal()
-  
-  plots[[col]] <- plot
-}
-
-# Specify the file path where you want to save the PDF file
-output_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/plots.pdf"
-
-# Create a PDF device
-pdf(output_path)
-
-# Print or display the generated plots and save them in the PDF
-for (col in data_columns) {
-  print(plots[[col]])
-}
-
-# Close the PDF device
-dev.off()
-
-cat("PDF file saved at:", output_path, "\n")
-
-```
-
-
-comparison between the imputed and the original data for *religiosity* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Several times a day", "2"  = "Once a day",
-                    "3" = "Several times each week",
-                    "4" = "Only when attending religious services",
-                    "5" = "Only on special holy days", "6" = "Once a year",
-                    "7" = "Less often", "8" = "Never, practically never",
-                    "null" = "null")
-
-# Create the plot
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(religiosity)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(religiosity)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$religiosity), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *happiness* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Very happy", "2"  = "Quite happy", "3" = "Not very happy",
-                    "4" = "Not at all happy", "null" = "null")
-
-# Create the plot
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(happiness)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(happiness)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$happiness), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *free_choice* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "None at all", "2" = "2", "3" = "3", "4" = "4", "5" = "5",
-                    "6" = "6", "7" = "7", "8" = "8", "9" = "9",
-                    "10" = "A great deal", "null" = "null ")
-
-# Create the plot
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(free_choice)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(free_choice)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$free_choice), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *health* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Very good", "2" = "Good", "3" = "Fair",
-                    "4" = "Poor", "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(health)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(health)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$health), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *life_satis* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Completely dissatisfied", "2" = "2", "3" = "3",
-                    "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8",
-                    "9" = "9","10" = "Completely satisfied", "null" = "null")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(life_satis)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(life_satis)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$life_satis), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *financial_satis* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "dissatisfied", "2" = "2", "3" = "3",
-                    "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8",
-                    "9" = "9","10" = "satisfied", "null" = "null")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(financial_satis)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(financial_satis)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$financial_satis), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *gen_trust* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Most people can be trusted", "2" = "Need to be very careful",
-                    "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(gen_trust)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(gen_trust)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$gen_trust), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *sign_pet* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Have done", "2" = "Might do",
-                    "3" = "Would never do", "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(sign_pet)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(sign_pet)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$sign_pet), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *join_boycott* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Have done", "2" = "Might do",
-                    "3" = "Would never do", "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(join_boycott)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(join_boycott)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$join_boycott), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *attend_demo* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Have done", "2" = "Might do",
-                    "3" = "Would never do", "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(attend_demo)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(attend_demo)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$attend_demo), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *join_strike* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Have done", "2" = "Might do",
-                    "3" = "Would never do", "null" = "null ")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(join_strike)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(join_strike)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$join_strike), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
-```
-
-comparison between the imputed and the original data for *employment* by bar chart. *imputed in red*.
-```{r}
-library(ggplot2)
-library(scales)
-
-# Define the string labels and their corresponding numeric values
-numeric_labels <- c("1" = "Full time", "2" = "Part time", "3" = "Self employed",
-                    "4" = "Retired", "5" = "Housewife not otherwise employed",
-                    "6" = "Student", "7" = "Unemployed", "null" = "null")
-
-# Create the plot
-data_columns <- setdiff(names(merged_data), c("country", "age", "gender"))
-ggplot() +
-  geom_bar(data = merged_data, aes(x = factor(employment)), width = 0.3) +
-  geom_bar(data = merged_imputet_rounded, aes(x = factor(employment)), fill = "red",
-           position = position_nudge(x = 0.25), width = 0.3) +
-  scale_x_discrete(breaks = unique(merged_data$employment), 
-                   labels = numeric_labels) +  # Apply labels
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate and adjust
-
 ```
 
 renaming the data in the data set.
@@ -884,6 +457,67 @@ saveWorkbook(wb, "statistics_all_countries.xlsx")
 
 ```
 
+taking the VAR value from wgidataset and store it in 'filtered_data'
+```{r}
+# Load dplyr package
+library(dplyr)
+
+# Original dataset is wgidataset
+
+# Create a data frame containing the target countries and years
+target_data <- data.frame(
+  countryname = c("Egypt, Arab Rep.", "Iraq", "Jordan", "Lebanon", "Libya", "Morocco", "Tunisia"),
+  year = c(2016, 2016, 2016, 2016, 2017, 2016, 2016)
+)
+
+# Merge the original dataset (wgidataset) with target_data on 'countryname' and 'year'
+filtered_data <- wgidataset %>%
+  inner_join(target_data, by = c("countryname", "year")) %>%
+  select(countryname, year, var)  # select only the columns we need
+
+# View the filtered data
+print(filtered_data)
+
+
+```
+
+merge the VAR values with 'merged_data' and call it 'final_dataset'
+```{r}
+# Load the required library
+library(dplyr)
+
+# Your existing dataset is assumed to be 'merged_data' and your newly created dataset is 'filtered_data'
+
+# Create a mapping dataframe for country abbreviations and full names
+country_mapping <- data.frame(
+  country = c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB"),
+  countryname = c("Jordan", "Iraq", "Tunisia", "Morocco", "Egypt, Arab Rep.", "Lebanon", "Libya")
+)
+
+# Merge the mapping dataframe with the existing dataset to get full country names
+merged_data_with_fullnames <- left_join(merged_data, country_mapping, by = "country")
+
+# Merge to add the 'var' column from filtered_data
+final_dataset <- left_join(merged_data_with_fullnames, filtered_data[, c("countryname", "var")], by = "countryname")
+
+# Optionally, remove the 'countryname' column after the merging
+final_dataset$countryname <- NULL
+
+```
+
+
+making sure of the variables and the VAR values
+```{r}
+unique_dataset <- final_dataset %>% 
+  select(country, var) %>% 
+  distinct()
+
+# Print the unique dataset
+print(unique_dataset)
+names(final_dataset)
+```
+
+
 multilevel analysis
 ```{r}
 # Load necessary packages
@@ -894,238 +528,6 @@ model1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financ
                (1|country) + var, data = final_dataset)
 ```
 
-
-```{r}
-model1_adv <- lmer(sign_pet ~ happiness * var + health + free_choice + life_satis + financial_satis + 
-                   gen_trust + age * gender + employment + religiosity + 
-                   (1 + happiness + age|country), 
-                   data = final_dataset)
-summary(model1_adv)
-```
-
-
-```{r}
-# Load the required packages
-library(lme4)
-library(lmerTest)
-
-# Load the dataset
-
-# Fit the multivariate multilevel model
-model <- lmer(cbind(sign_pet, join_boycott, attend_demo, join_strike) ~ 
-              happiness + health + free_choice + life_satis + financial_satis +
-              gen_trust + age + gender + employment + religiosity + 
-              (1 + happiness + health + free_choice + life_satis + financial_satis | country) +
-              (1 | var), 
-              data = final_dataset)
-
-# Show the model summary
-summary(model)
-
-# Produce various diagnostic plots
-plot(model)
-```
-
-
-```{r}
-fit1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + (1 | country/var), data = final_dataset)
-summary(fit1)
-
-```
-
-
-```{r}
-# Load the required packages
-library(lme4)
-library(lmerTest)
-
-# Load your dataset
-# final_dataset <- read.csv("path/to/your/dataset.csv")
-
-# Fit the multivariate multilevel models
-fit1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
-fit2 <- lmer(join_boycott ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
-fit3 <- lmer(attend_demo ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
-fit4 <- lmer(join_strike ~ happiness + health + free_choice + life_satis + financial_satis + (1 + happiness + health | country/var), data = final_dataset)
-
-# Summarize the results
-summary(fit1)
-summary(fit2)
-summary(fit3)
-summary(fit4)
-
-uniq(final_dataset$country)
-
-```
-
-```{r}
-# Load the required packages
-library(dplyr)
-library(tidyr)
-library(purrr)
-library(openxlsx)
-
-# Assuming your dataset is stored in a variable called 'final_dataset'
-# Subset only the relevant variables for correlation
-final_dataset_subset <- final_dataset %>%
-  select(country, happiness, health, free_choice, life_satis, financial_satis, 
-         gen_trust, age, gender, employment, sign_pet, 
-         join_boycott, attend_demo, join_strike, religiosity)
-
-# Define the list of countries
-countries <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
-
-# Create an Excel workbook
-wb <- createWorkbook()
-
-# Generate and add a sheet for each country's correlation matrix
-for (country_name in countries) {
-  
-  # Filter the data for each country
-  country_data <- final_dataset_subset %>%
-    filter(country == country_name) %>%
-    select(-country)
-  
-  # Calculate the correlation matrix
-  country_cor_matrix <- cor(country_data, use = "complete.obs", method = "pearson")
-  
-  # Create a sheet for the country's data in the Excel workbook
-  addWorksheet(wb, sheetName = country_name)
-  
-  # Write the correlation matrix to the sheet
-  writeData(wb, sheet = country_name, x = country_cor_matrix)
-  
-  # Add a column with variable names on the left side of the matrix
-  variable_names <- colnames(country_cor_matrix)
-  writeData(wb, sheet = country_name, x = variable_names, startCol = 1, startRow = 2)
-}
-
-# Save the Excel workbook to a file
-saveWorkbook(wb, "correlation_matrices_with_variables.xlsx")
-```
-
-
-```{r}
-# Load the required packages
-library(dplyr)
-library(tidyr)
-library(purrr)
-library(openxlsx)
-
-# Assuming your dataset is stored in a variable called 'final_dataset'
-# Subset only the relevant variables for correlation
-final_dataset_subset <- final_dataset %>%
-  select(country, happiness, health, free_choice, life_satis, financial_satis, 
-         gen_trust, age, gender, employment, sign_pet, 
-         join_boycott, attend_demo, join_strike, religiosity)
-
-# Calculate the correlation matrix across all countries
-cor_matrix <- cor(final_dataset_subset %>%
-                    select(-country), use = "complete.obs", method = "pearson")
-
-# Create an Excel workbook
-wb <- createWorkbook()
-
-# Create a sheet for the correlation matrix
-addWorksheet(wb, sheetName = "Correlation Matrix")
-
-# Write the correlation matrix to the sheet
-writeData(wb, sheet = "Correlation Matrix", x = cor_matrix)
-
-# Add a column with variable names on the left side of the matrix
-variable_names <- colnames(cor_matrix)
-writeData(wb, sheet = "Correlation Matrix", x = variable_names, startCol = 1, startRow = 2)
-
-# Save the Excel workbook to a file
-saveWorkbook(wb, "correlation_matrix_across_countries_with_variables.xlsx")
-
-
-```
-
-```{r}
-# Load necessary packages
-library(ppcor)
-
-# Simulate your dataset or read it
-# final_dataset <- read.csv("your_file.csv")
-
-# List of countries
-countries <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
-
-# Variables of interest
-iv_vars <- c("happiness", "health", "free_choice", "life_satis", "financial_satis")
-dv_vars <- c("join_boycott", "attend_demo", "join_strike", "religiosity")
-control_vars <- c("gen_trust", "age", "gender", "employment", "sign_pet")
-
-# Loop through each country
-for (cty in countries) {
-  subset_data <- subset(final_dataset, country == cty)
-  
-  # Remove rows with NA
-  subset_data <- na.omit(subset_data)
-  
-  # Create a dataframe of IV and DV
-  all_vars <- c(iv_vars, dv_vars, control_vars)
-  df <- subset_data[, all_vars]
-  
-  # Compute partial correlations using GLM
-  partial_correlations <- matrix(NA, length(iv_vars), length(dv_vars))
-  colnames(partial_correlations) <- dv_vars
-  rownames(partial_correlations) <- iv_vars
-
-  for (iv in iv_vars) {
-    for (dv in dv_vars) {
-      fit <- lm(paste(dv, "~", iv, "+", paste(control_vars, collapse = " + ")), data = df)
-      partial_correlations[iv, dv] <- summary(fit)$coefficients[2, "Estimate"]
-    }
-  }
-  
-  # Print the result
-  cat("\nPartial Correlation Matrix for", cty, "\n")
-  print(partial_correlations)
-}
-
-
-```
-
-
-
-
-```{r}
-
-library(ggcorrplot)
-# Create the plot
-  ggcorrplot(country_cor_matrix, 
-             hc.order = TRUE, 
-             type = "lower", 
-             lab = TRUE, 
-             lab_size = 3, 
-             outline.col = "white", 
-             ggtheme = ggplot2::theme_minimal()) +
-    ggtitle(paste("Correlation Matrix for Country:", country_name)) +
-    theme(plot.title = element_text(hjust = 0.5))
-
-```
-
-```{r}
-library(brms)
-# Define the Bayesian Multivariate Multilevel Model
-formula <- bf(join_boycott ~ happiness + health + free_choice + life_satis + financial_satis + 
-                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
-            bf(attend_demo ~ happiness + health + free_choice + life_satis + financial_satis + 
-                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
-            bf(join_strike ~ happiness + health + free_choice + life_satis + financial_satis + 
-                            gen_trust + age + gender + employment + sign_pet + (1|country)) +
-            bf(religiosity ~ happiness + health + free_choice + life_satis + financial_satis + 
-                            gen_trust + age + gender + employment + sign_pet + (1|country))
-
-# Run the model
-fit <- brm(formula, data = final_dataset, cores = 4, iter = 2000)
-
-# Show summary
-summary(fit)
-
-```
 
 ```{r}
 # Install and load the required packages
