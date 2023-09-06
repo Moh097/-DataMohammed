@@ -11,9 +11,6 @@ A code chunk only for libraries.
 
 ```
 
-
-# List of specific countries
-
 Take only specific columns after we extracted only the desired countries. 7 Wave
 ```{r}
 
@@ -74,6 +71,8 @@ for (col in names(Wave_7_renamed)) {
   Wave_7_renamed[[col]][Wave_7_renamed[[col]] %in% 
   c(-1, -2, -4, -5)] <- NA
 }
+Wave_7_renamed$health[Wave_7_renamed$health == 5] <- 4
+
 
 ```
 
@@ -108,6 +107,102 @@ unique(merged_data$country)
 
 ```
 
+recoding the variables by flipping from ascending to descending.
+```{r}
+
+library(dplyr)
+
+# Define the recoding rules
+recoding_rules_happiness <- c(
+  "1" = "4",
+  "2" = "3",
+  "3" = "2",
+  "4" = "1"
+)
+
+recoding_rules_health <- c(
+  "1" = "4",
+  "2" = "3",
+  "3" = "2",
+  "4" = "1"
+)
+
+
+recoding_rules <- c(
+  "1" = "3",
+  "2" = "2",
+  "3" = "1"
+)
+
+# Apply the recoding to the specified variables in wave_7 dataset
+merged_data_recoded <- merged_data %>%
+  mutate(
+    sign_pet = recode(sign_pet, !!!recoding_rules),
+    join_boycott = recode(join_boycott, !!!recoding_rules),
+    attend_demo = recode(attend_demo, !!!recoding_rules),
+    join_strike = recode(join_strike, !!!recoding_rules),
+    health = recode(health, !!!recoding_rules_health),
+    happiness = recode(happiness, !!!recoding_rules_happiness)
+  )
+
+```
+
+taking the VAR value from wgidataset and store it in 'filtered_data'
+```{r}
+# Load dplyr package
+library(dplyr)
+
+# Original dataset is wgidataset
+
+# Create a data frame containing the target countries and years
+target_data <- data.frame(
+  countryname = c("Egypt, Arab Rep.", "Iraq", "Jordan", "Lebanon", "Libya", "Morocco", "Tunisia"),
+  year = c(2016, 2016, 2016, 2016, 2017, 2016, 2016)
+)
+
+# Merge the original dataset (wgidataset) with target_data on 'countryname' and 'year'
+filtered_data <- wgidataset %>%
+  inner_join(target_data, by = c("countryname", "year")) %>%
+  select(countryname, year, var)  # select only the columns we need
+
+# View the filtered data
+print(filtered_data)
+
+```
+
+merge the VAR values with 'merged_data' and call it 'final_dataset'
+```{r}
+# Load the required library
+library(dplyr)
+
+# Create a mapping dataframe for country abbreviations and full names
+country_mapping <- data.frame(
+  country = c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB"),
+  countryname = c("Jordan", "Iraq", "Tunisia", "Morocco", "Egypt, Arab Rep.", "Lebanon", "Libya")
+)
+
+# Merge the mapping dataframe with the existing dataset to get full country names
+merged_data_with_fullnames <- left_join(merged_data_recoded, country_mapping, by = "country")
+
+# Merge to add the 'var' column from filtered_data
+final_dataset <- left_join(merged_data_with_fullnames, filtered_data[, c("countryname", "var")], by = "countryname")
+
+# Optionally, remove the 'countryname' column after the merging
+final_dataset$countryname <- NULL
+
+```
+
+making sure of the variables and the VAR values
+```{r}
+unique_dataset <- final_dataset %>% 
+  select(country, var) %>% 
+  distinct()
+
+# Print the unique dataset
+print(unique_dataset)
+names(final_dataset)
+```
+
 visualize the missing values for every attibute in the merged data.
 ```{r}
 library(ggplot2)
@@ -122,7 +217,6 @@ ggplot(missing_data_df, aes(x = variable, y = proportion)) +
   labs(title = "Proportion of Missing Data by Variable", x = "Variable", y = "Proportion Missing") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-
 
 calculating and printing the propotions of the missing data in the merged data.
 ```{r}
@@ -170,33 +264,33 @@ employment_mapping <- c(
 #=======join_strike=========================================================================
 
 join_strike_mapping <- c(
-  "1" = "Have done",
+  "1" = "Would never do",
   "2" = "Might do",
-  "3" = "Would never do",
+  "3" = "Have done",
   "null" = "null"
 )
 #=======attend_demo=========================================================================
 
 attend_demo_mapping <- c(
-  "1" = "Have done",
+  "1" = "Would never do",
   "2" = "Might do",
-  "3" = "Would never do",
+  "3" = "Have done",
   "null" = "null"
 )
 #=======join_boycott========================================================================
 
 join_boycott_mapping <- c(
-  "1" = "Have done",
+  "1" = "Would never do",
   "2" = "Might do",
-  "3" = "Would never do",
+  "3" = "Have done",
   "null" = "null"
 )
 #=======sign_pet============================================================================
 
 sign_pet_mapping <- c(
-  "1" = "Have done",
+  "1" = "Would never do",
   "2" = "Might do",
-  "3" = "Would never do",
+  "3" = "Have done",
   "null" = "null"
 )
 #=======gen_trust===========================================================================
@@ -239,10 +333,10 @@ life_satis_mapping <- c(
 #=======health============================================================================
 
 health_mapping <- c(
-  "1" = "Very good",
-  "2" = "Good",
-  "3" = "Fair",
-  "4" = "Poor",
+  "1" = "Poor",
+  "2" = "Fair",
+  "3" = "Good",
+  "4" = "Very good",
   "null" = "null"
 )
 #=======free_choice=========================================================================
@@ -263,11 +357,11 @@ free_choice_mapping <- c(
 #=======happiness===========================================================================
 
 happiness_mapping <- c(
-  "1" = "Very happy",
-  "2" = "Quite happy",
-  "3" = "Not very happy",
-  "4" = "Not at all happy",
-  "null" = "null"
+    "1" = "Not at all happy",
+    "2" = "Not very happy",
+    "3" = "Quite happy",
+    "4" = "Very happy",
+    "null" = "null"
 )
 #=======gender===========================================================================
 
@@ -280,20 +374,15 @@ gender_mapping <- c(
 #=======religiosity=========================================================================
 
 religiosity_mapping <- c(
-  "1" = "Several times a day",
-  "2"  = "Once a day",
-  "3" = "Several times each week",
-  "4" = "Only when attending religious services",
-  "5" = "Only on special holy days",
-  "6" = "Once a year",
-  "7" = "Less often",
-  "8" = "Never, practically never",
+  "1" = "A religious person",
+  "2"  = "Not a religious person",
+  "3" = "An atheist",
   "null" = "null"
 )
 
 #=======adding changes to new data frame====================================================
 
-merged_renamed <- merged_imputet_rounded %>%
+merged_renamed <- merged_data_recoded %>%
   mutate(
     employment = employment_mapping[as.character(employment)],
     join_strike = join_strike_mapping[as.character(join_strike)],
@@ -309,30 +398,63 @@ merged_renamed <- merged_imputet_rounded %>%
     gender = gender_mapping[as.character(gender)],
     religiosity = religiosity_mapping[as.character(religiosity)]
   )
-# Print the new dataframe
-print(merged_renamed)
 ```
 
+creating a data frame to do iterations and imputation then do the missForest imputation method to handle the missing data.
+```{r}
+library(missRanger)
+library(ggplot2)
 
-calculate the descriptive statistics.
+merged_data_na <- data.frame(final_dataset)
+
+final_imputet <- missRanger(
+  merged_data_na, 
+  formula = . ~ . ,
+  num.trees = 1000, 
+  verbose = 2, 
+  seed = 111,  
+  returnOOB = T)
+```
+
+calculating and printing the propotions of the missing data in the merged data after the imputation.
+```{r}
+library(dplyr)
+library(tidyr)
+merged_imputet_rounded %>%
+  group_by(country) %>%
+  summarise(across(
+    .cols = everything(),
+    .fns = ~ mean(is.na(.x)),
+    .names = "{.col}_missing_proportion"
+  )) -> missing_proportions_imputed
+
+# Print the result
+print(missing_proportions_imputed)
+
+
+```
+
+calculate the descriptive statistics across countries.
 ```{r}
 # Load required libraries
 library(dplyr)
 library(moments)
 library(ggplot2)
+library(writexl)
 
-# Assuming your dataset is named "your_dataset"
-# Replace "your_dataset" with the actual name of your dataset
+# Define the desired countries
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LBY")
 
-country_data <- merged_imputet_rounded %>%
-  filter(country == "EGY")  # Filter data for EGY country
+# Filter data for desired countries
+country_data <- final_dataset %>%
+  filter(country %in% desired_countries)
 
 # List of variable names to calculate statistics for
 variable_names <- c("happiness", "gen_trust", "health", "free_choice",
                     "life_satis", "financial_satis", "gen_trust",
                     "sign_pet", "join_boycott", "attend_demo",
                     "join_strike", "religiosity", 
-                    "age", "gender", "employment")
+                    "age", "gender", "employment", "var")
 
 # Initialize an empty list to store results
 results_list <- list()
@@ -359,20 +481,10 @@ for (variable_name in variable_names) {
 # Combine results into a single data frame
 results_df <- bind_rows(results_list)
 
-# Print the results
-print(results_df)
-
-
-# List of variables to exclude
-excluded_variables <- c("age", "gender")
-
-# Filter out the excluded variables from the dataframe
-filtered_results <- results_df %>% filter(!variable_name %in% excluded_variables)
-
 # Create a bar chart for mean values
-mean_bar_chart <- ggplot(filtered_results, aes(x = variable_name, y = mean)) +
+mean_bar_chart <- ggplot(results_df, aes(x = variable_name, y = mean)) +
   geom_bar(stat = "identity", fill = "blue") +
-  labs(title = "Mean Values for Different Variables (Excluding Age and Gender) in EGY Country",
+  labs(title = "Mean Values for Different Variables Across Desired Countries",
        x = "Variable", y = "Mean Value") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -380,13 +492,13 @@ mean_bar_chart <- ggplot(filtered_results, aes(x = variable_name, y = mean)) +
 # Print the bar chart
 print(mean_bar_chart)
 
-library(writexl)
-
 # Define the file path for the Excel file
 file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/statistics_results.xlsx"
 
 # Write the data frame to the specified Excel file path
-write_xlsx(filtered_results, path = file_path)
+write_xlsx(results_df, path = file_path)
+
+
 
 ```
 
@@ -398,9 +510,7 @@ calculate the descriptive statistics. for each country seperately.
 library(dplyr)
 library(moments)
 library(writexl)
-
-# Assuming your dataset is named "merged_imputet_rounded"
-# Replace "merged_imputet_rounded" with the actual name of your dataset
+library(openxlsx)
 
 # List of country codes
 country_codes <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
@@ -417,7 +527,7 @@ wb <- createWorkbook()
 
 # Loop through each country
 for (country_code in country_codes) {
-  country_data <- merged_imputet_rounded %>%
+  country_data <- final_dataset %>%
     filter(country == country_code)  # Filter data for the current country
 
   # Initialize an empty list to store results for the current country
@@ -457,78 +567,309 @@ saveWorkbook(wb, "statistics_all_countries.xlsx")
 
 ```
 
-taking the VAR value from wgidataset and store it in 'filtered_data'
+calculate the descriptive statistics across countries. *imputet data*
 ```{r}
-# Load dplyr package
+# Load required libraries
 library(dplyr)
+library(moments)
+library(ggplot2)
+library(writexl)
 
-# Original dataset is wgidataset
+# Define the desired countries
+desired_countries <- c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LBY")
 
-# Create a data frame containing the target countries and years
-target_data <- data.frame(
-  countryname = c("Egypt, Arab Rep.", "Iraq", "Jordan", "Lebanon", "Libya", "Morocco", "Tunisia"),
-  year = c(2016, 2016, 2016, 2016, 2017, 2016, 2016)
+# Filter data for desired countries
+country_data <- final_imputet %>%
+  filter(country %in% desired_countries)
+
+# List of variable names to calculate statistics for
+variable_names <- c("happiness", "gen_trust", "health", "free_choice",
+                    "life_satis", "financial_satis", "gen_trust",
+                    "sign_pet", "join_boycott", "attend_demo",
+                    "join_strike", "religiosity", 
+                    "age", "gender", "employment", "var")
+
+# Initialize an empty list to store results
+results_list <- list()
+
+# Loop through each variable and calculate statistics
+for (variable_name in variable_names) {
+  variable_stats <- country_data %>%
+    summarise(
+      variable_name = variable_name,
+      mean = mean(!!sym(variable_name), na.rm = TRUE),
+      median = median(!!sym(variable_name), na.rm = TRUE),
+      mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
+      variance = var(!!sym(variable_name), na.rm = TRUE),
+      standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),
+      range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),
+      iqr = IQR(!!sym(variable_name), na.rm = TRUE),
+      skewness = skewness(!!sym(variable_name), na.rm = TRUE),
+      kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)
+    )
+  
+  results_list[[variable_name]] <- variable_stats
+}
+
+# Combine results into a single data frame
+results_df <- bind_rows(results_list)
+
+# Create a bar chart for mean values
+mean_bar_chart <- ggplot(results_df, aes(x = variable_name, y = mean)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Mean Values for Different Variables Across Desired Countries",
+       x = "Variable", y = "Mean Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print the bar chart
+print(mean_bar_chart)
+
+# Define the file path for the Excel file
+file_path <- "C:/Users/LENOVO/Desktop/DataMohammed/Data/statistics_results_imputet.xlsx"
+
+# Write the data frame to the specified Excel file path
+write_xlsx(results_df, path = file_path)
+
+
+
+```
+
+calculate the descriptive statistics. for each country separately. *imputed data*
+```{r}
+# Load required libraries
+# Load required libraries
+# Load required libraries
+library(dplyr)
+library(moments)
+library(writexl)
+library(openxlsx)
+
+# List of country codes
+country_codes <- c("EGY", "IRQ", "JOR", "LEB", "MOR", "TUN", "LIB")
+
+# List of variable names to calculate statistics for
+variable_names <- c("happiness", "gen_trust", "health", "free_choice",
+                    "life_satis", "financial_satis", "gen_trust",
+                    "sign_pet", "join_boycott", "attend_demo",
+                    "join_strike", "religiosity", 
+                    "age", "gender", "employment")
+
+# Create a new Excel workbook
+wb <- createWorkbook()
+
+# Loop through each country
+for (country_code in country_codes) {
+  country_data <- final_imputet %>%
+    filter(country == country_code)  # Filter data for the current country
+
+  # Initialize an empty list to store results for the current country
+  country_results <- list()
+
+  # Loop through each variable and calculate statistics for the current country
+  for (variable_name in variable_names) {
+    variable_stats <- country_data %>%
+      summarise(
+        variable_name = variable_name,
+        mean = mean(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        median = median(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        mode = as.numeric(names(sort(table(!!sym(variable_name)), decreasing = TRUE)[1])),
+        variance = var(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        standard_deviation = sd(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        range = paste(range(!!sym(variable_name), na.rm = TRUE), collapse = " - "),  # Add na.rm = TRUE
+        iqr = IQR(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        skewness = skewness(!!sym(variable_name), na.rm = TRUE),  # Add na.rm = TRUE
+        kurtosis = kurtosis(!!sym(variable_name), na.rm = TRUE)  # Add na.rm = TRUE
+      )
+    
+    # Append variable statistics to the country's results
+    country_results[[variable_name]] <- variable_stats
+  }
+
+  # Combine results for the current country into a single data frame
+  country_results_df <- bind_rows(country_results)
+
+  # Add the country's statistics to a new sheet in the Excel workbook
+  addWorksheet(wb, sheetName = country_code)
+  writeData(wb, sheet = country_code, x = country_results_df, startCol = 1, startRow = 1)
+}
+
+# Save the Excel workbook with statistics for all countries
+saveWorkbook(wb, "statistics_all_countries_imputet.xlsx")
+
+
+```
+
+
+
+visualize the mode for *gen_trust, religiosity, gender, employment* across countries. and save it in one PDF
+```{r}
+# Load required libraries
+library(ggplot2)
+library(patchwork)
+
+# List of unique countries
+unique_countries <- unique(merged_renamed$country)
+
+# Create a PDF file for all country mode plots
+pdf_file <- "all_country_mode_plots.pdf"
+pdf(pdf_file, width = 8, height = 6)
+
+# Create a data frame with mode frequencies across all countries
+mode_data_all_countries <- data.frame(
+  Variable = c("gen_trust", "religiosity", "gender", "employment"),
+  Mode = c(
+    names(sort(table(merged_renamed$gen_trust), decreasing = TRUE)[1]),
+    names(sort(table(merged_renamed$religiosity), decreasing = TRUE)[1]),
+    names(sort(table(merged_renamed$gender), decreasing = TRUE)[1]),
+    names(sort(table(merged_renamed$employment), decreasing = TRUE)[1])
+  ),
+  Frequency = c(
+    max(table(merged_renamed$gen_trust)),
+    max(table(merged_renamed$religiosity)),
+    max(table(merged_renamed$gender)),
+    max(table(merged_renamed$employment))
+  )
 )
 
-# Merge the original dataset (wgidataset) with target_data on 'countryname' and 'year'
-filtered_data <- wgidataset %>%
-  inner_join(target_data, by = c("countryname", "year")) %>%
-  select(countryname, year, var)  # select only the columns we need
+# Create a bar plot for mode frequencies across all countries
+mode_plot_all_countries <- ggplot(mode_data_all_countries, aes(x = Variable, y = Frequency, fill = Mode)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mode Frequencies for Categorical Variables Across All Countries",
+       x = "Variables",
+       y = "Frequency") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# View the filtered data
-print(filtered_data)
+# Print the mode plot for all countries
+print(mode_plot_all_countries)
 
+# Add a page break
+cat("\f")
+
+# Loop through each country and generate the mode plot
+for (country_code in unique_countries) {
+  # Filter data for the specific country
+  country_data <- subset(merged_renamed, country == country_code)
+  
+  # Create a data frame with mode frequencies for the specific country
+  mode_data_country <- data.frame(
+    Variable = c("gen_trust", "religiosity", "gender", "employment"),
+    Mode = c(
+      names(sort(table(country_data$gen_trust), decreasing = TRUE)[1]),
+      names(sort(table(country_data$religiosity), decreasing = TRUE)[1]),
+      names(sort(table(country_data$gender), decreasing = TRUE)[1]),
+      names(sort(table(country_data$employment), decreasing = TRUE)[1])
+    ),
+    Frequency = c(
+      max(table(country_data$gen_trust)),
+      max(table(country_data$religiosity)),
+      max(table(country_data$gender)),
+      max(table(country_data$employment))
+    )
+  )
+  
+  # Create a bar plot for mode frequencies for the specific country
+  mode_plot_country <- ggplot(mode_data_country, aes(x = Variable, y = Frequency, fill = Mode)) +
+    geom_bar(stat = "identity") +
+    labs(title = paste("Mode Frequencies for Categorical Variables in", country_code),
+         x = "Variables",
+         y = "Frequency") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Print the plot to the PDF
+  print(mode_plot_country)
+  
+  # Add a page break
+  cat("\f")
+}
+
+# Close the PDF
+dev.off()
+
+# Display the combined PDF
+system(paste(pdf_file, " &", sep = ""))
 
 ```
 
-merge the VAR values with 'merged_data' and call it 'final_dataset'
 ```{r}
-# Load the required library
-library(dplyr)
+# Specify the columns where you want to remove rows with NULL values
+columns_to_check <- c("happiness", "health", "sign_pet", "join_boycott", "attend_demo", "join_strike")
 
-# Your existing dataset is assumed to be 'merged_data' and your newly created dataset is 'filtered_data'
+# Create a new data frame with rows removed where NULL values are present in the specified columns
+merged_renamed_without_NA <- merged_renamed[complete.cases(merged_renamed[, columns_to_check]), ]
 
-# Create a mapping dataframe for country abbreviations and full names
-country_mapping <- data.frame(
-  country = c("JOR", "IRQ", "TUN", "MOR", "EGY", "LEB", "LIB"),
-  countryname = c("Jordan", "Iraq", "Tunisia", "Morocco", "Egypt, Arab Rep.", "Lebanon", "Libya")
-)
-
-# Merge the mapping dataframe with the existing dataset to get full country names
-merged_data_with_fullnames <- left_join(merged_data, country_mapping, by = "country")
-
-# Merge to add the 'var' column from filtered_data
-final_dataset <- left_join(merged_data_with_fullnames, filtered_data[, c("countryname", "var")], by = "countryname")
-
-# Optionally, remove the 'countryname' column after the merging
-final_dataset$countryname <- NULL
 
 ```
 
 
-making sure of the variables and the VAR values
 ```{r}
-unique_dataset <- final_dataset %>% 
-  select(country, var) %>% 
-  distinct()
+# Load required libraries
+library(ggplot2)
+library(patchwork)
 
-# Print the unique dataset
-print(unique_dataset)
-names(final_dataset)
+# List of unique countries
+unique_countries <- unique(merged_renamed_without_NA$country)
+
+# Specify the variables for which you want to calculate and visualize the median
+variables_to_analyze <- c("happiness", "health", "sign_pet", "join_boycott", "attend_demo", "join_strike")
+
+# Create a PDF file for median plots
+pdf_file <- "median_plots.pdf"
+pdf(pdf_file, width = 8, height = 6)
+
+# Loop through each variable and generate the median plot
+for (variable_name in variables_to_analyze) {
+  median_data_all_countries <- data.frame(
+    Country = character(0),  # Initialize an empty character vector
+    Median = numeric(0)      # Initialize an empty numeric vector
+  )
+
+  # Loop through each unique country
+  for (country_code in unique_countries) {
+    # Subset data for the current country and variable
+    subset_data <- merged_renamed_without_NA[merged_renamed_without_NA$country == country_code, variable_name]
+    
+    # Check if there are any non-missing values for this country and variable
+    if (length(subset_data) > 0 && !all(is.na(subset_data))) {
+      # Calculate the median
+      median_value <- median(subset_data, na.rm = TRUE)
+      
+      # Add it to the data frame
+      median_data_all_countries <- rbind(median_data_all_countries, data.frame(Country = country_code, Median = median_value))
+    }
+  }
+
+  # Check if there is any valid data for the current variable
+  if (nrow(median_data_all_countries) > 0) {
+    # Create a box plot for median values across all countries
+    median_plot_all_countries <- ggplot(median_data_all_countries, aes(x = reorder(Country, Median), y = Median)) +
+      geom_boxplot() +
+      labs(title = paste("Median of", variable_name, "Across All Countries"),
+           x = "Countries",
+           y = "Median") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+    # Print the median plot for the current variable
+    print(median_plot_all_countries)
+    
+    # Add a page break
+    cat("\f")
+  }
+}
+
+# Close the PDF
+dev.off()
+
+# Display the combined PDF
+system(paste(pdf_file, " &", sep = ""))
+
+
 ```
 
-
-multilevel analysis
-```{r}
-# Load necessary packages
-library(lme4)
-library(tidyverse)
-model1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + 
-               gen_trust + age + gender + employment + religiosity + 
-               (1|country) + var, data = final_dataset)
-```
-
-
+correlation with P values.
 ```{r}
 # Install and load the required packages
 library(Hmisc)
@@ -538,17 +879,21 @@ library(openxlsx)
 wb <- createWorkbook()
 
 # List of unique countries
-unique_countries <- unique(final_dataset$country)
+unique_countries <- unique(merged_imputet_rounded$country)
+
+# Variables of interest
+var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
+                     "gen_trust", "age", "gender", "employment", "sign_pet",
+                     "join_boycott", "attend_demo", "join_strike", "religiosity")
+
+# Initialize variables to store correlation matrix and p-values for all countries
+all_corr_matrix <- NULL
+all_p_values <- NULL
 
 # Loop through each country
 for (ctry in unique_countries) {
   # Subset data for each country
-  subset_data <- subset(final_dataset, country == ctry)
-  
-  # Variables of interest
-  var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
-                       "gen_trust", "age", "gender", "employment", "sign_pet",
-                       "join_boycott", "attend_demo", "join_strike", "religiosity")
+  subset_data <- subset(merged_imputet_rounded, country == ctry)
   
   # Generate correlation matrix and p-values
   corr_object <- rcorr(as.matrix(subset_data[, var_of_interest]))
@@ -561,17 +906,489 @@ for (ctry in unique_countries) {
   addWorksheet(wb, sheetName = ctry)
   
   # Write the correlation matrix with variable names on the left side
-  writeData(wb, sheet = ctry, x = cbind(variables = rownames(corr_matrix), corr_matrix))
+  corr_data <- cbind(variables = rownames(corr_matrix), corr_matrix)
+  corr_data[, 2:ncol(corr_data)] <- as.numeric(corr_data[, 2:ncol(corr_data)])
+  writeData(wb, sheet = ctry, x = corr_data)
   
   # Calculate the number of rows in the correlation matrix
   num_rows <- nrow(corr_matrix)
   
   # Write p-values in a table below the correlation matrix
-  writeData(wb, sheet = ctry, x = cbind(variables = rownames(p_values), p_values), startRow = num_rows + 3)
+  p_data <- cbind(variables = rownames(p_values), p_values)
+  p_data[, 2:ncol(p_data)] <- as.numeric(p_data[, 2:ncol(p_data)])
+  writeData(wb, sheet = ctry, x = p_data, startRow = num_rows + 3)
+  
+  # Append the correlation matrix and p-values to the all_corr_matrix and all_p_values variables
+  all_corr_matrix <- cbind(all_corr_matrix, corr_matrix)
+  all_p_values <- cbind(all_p_values, p_values)
 }
 
-# Save workbook (you can choose your own file name and path)
-saveWorkbook(wb, "Correlation_and_Pvalues_By_Country.xlsx", overwrite = TRUE)
+# Create a new sheet for the correlation across all countries
+addWorksheet(wb, sheetName = "All_Countries_Correlation")
 
+# Calculate the overall correlation matrix and p-values for all countries
+overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
+
+# Write the overall correlation matrix with variable names on the left side
+overall_corr_data <- cbind(variables = rownames(overall_corr_matrix), overall_corr_matrix)
+overall_corr_data[, 2:ncol(overall_corr_data)] <- as.numeric(overall_corr_data[, 2:ncol(overall_corr_data)])
+writeData(wb, sheet = "All_Countries_Correlation", x = overall_corr_data)
+
+# Calculate the number of rows in the overall correlation matrix
+num_rows <- nrow(overall_corr_matrix)
+
+# Write p-values in a table below the overall correlation matrix
+overall_p_data <- cbind(variables = rownames(overall_p_values), overall_p_values)
+overall_p_data[, 2:ncol(overall_p_data)] <- as.numeric(overall_p_data[, 2:ncol(overall_p_data)])
+writeData(wb, sheet = "All_Countries_Correlation", x = overall_p_data, startRow = num_rows + 3)
+
+# Save workbook (you can choose your own file name and path)
+saveWorkbook(wb, "Correlation_and_Pvalues_By_Country_and_All_Countries_imputet.xlsx", overwrite = TRUE)
+
+```
+
+```{r}
+# Install and load the required packages
+library(Hmisc)
+library(openxlsx)
+
+# Create an empty workbook
+wb <- createWorkbook()
+
+# List of unique countries
+unique_countries <- unique(merged_data_recoded$country)
+
+# Variables of interest
+var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
+                     "gen_trust", "age", "gender", "employment", "sign_pet",
+                     "join_boycott", "attend_demo", "join_strike", "religiosity")
+
+# Initialize variables to store correlation matrix and p-values for all countries
+all_corr_matrix <- NULL
+all_p_values <- NULL
+
+# Loop through each country
+for (ctry in unique_countries) {
+  # Subset data for each country
+  subset_data <- subset(merged_data_recoded, country == ctry)
+  
+  # Generate correlation matrix and p-values
+  corr_object <- rcorr(as.matrix(subset_data[, var_of_interest]))
+  
+  # Extract the correlation matrix and p-values
+  corr_matrix <- corr_object$r
+  p_values <- corr_object$P
+  
+  # Create a new sheet in the workbook for each country
+  addWorksheet(wb, sheetName = ctry)
+  
+  # Write the correlation matrix with variable names on the left side
+  corr_data <- cbind(variables = rownames(corr_matrix), corr_matrix)
+  corr_data[, 2:ncol(corr_data)] <- as.numeric(corr_data[, 2:ncol(corr_data)])
+  writeData(wb, sheet = ctry, x = corr_data)
+  
+  # Calculate the number of rows in the correlation matrix
+  num_rows <- nrow(corr_matrix)
+  
+  # Write p-values in a table below the correlation matrix
+  p_data <- cbind(variables = rownames(p_values), p_values)
+  p_data[, 2:ncol(p_data)] <- as.numeric(p_data[, 2:ncol(p_data)])
+  writeData(wb, sheet = ctry, x = p_data, startRow = num_rows + 3)
+  
+  # Append the correlation matrix and p-values to the all_corr_matrix and all_p_values variables
+  all_corr_matrix <- cbind(all_corr_matrix, corr_matrix)
+  all_p_values <- cbind(all_p_values, p_values)
+}
+
+# Create a new sheet for the correlation across all countries
+addWorksheet(wb, sheetName = "All_Countries_Correlation")
+
+# Calculate the overall correlation matrix and p-values for all countries
+overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
+
+# Write the overall correlation matrix with variable names on the left side
+overall_corr_data <- cbind(variables = rownames(overall_corr_matrix), overall_corr_matrix)
+overall_corr_data[, 2:ncol(overall_corr_data)] <- as.numeric(overall_corr_data[, 2:ncol(overall_corr_data)])
+writeData(wb, sheet = "All_Countries_Correlation", x = overall_corr_data)
+
+# Calculate the number of rows in the overall correlation matrix
+num_rows <- nrow(overall_corr_matrix)
+
+# Write p-values in a table below the overall correlation matrix
+overall_p_data <- cbind(variables = rownames(overall_p_values), overall_p_values)
+overall_p_data[, 2:ncol(overall_p_data)] <- as.numeric(overall_p_data[, 2:ncol(overall_p_data)])
+writeData(wb, sheet = "All_Countries_Correlation", x = overall_p_data, startRow = num_rows + 3)
+
+# Save workbook (you can choose your own file name and path)
+saveWorkbook(wb, "Correlation_and_Pvalues_By_Country_and_All_Countries.xlsx", overwrite = TRUE)
+
+```
+
+multilevel analysis
+```{r}
+# Load necessary packages
+library(lme4)
+library(tidyverse)
+model1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + 
+               gen_trust + age + gender + employment + religiosity + 
+               (1|country) + var, data = final_dataset)
+```
+
+```{r}
+# Load the necessary libraries
+library(rjags)
+library(coda)
+
+# Convert categorical variables to factors
+final_imputet$gen_trust <- as.factor(final_imputet$gen_trust)
+final_imputet$religiosity <- as.factor(final_imputet$religiosity)
+final_imputet$gender <- as.factor(final_imputet$gender)
+final_imputet$employment <- as.factor(final_imputet$employment)
+
+# Define the JAGS model
+model_string <- "model {
+  for (i in 1:N) {
+    sign_pet[i] ~ dnorm(mu_sign_pet[i], tau_sign_pet)
+    join_boycott[i] ~ dnorm(mu_join_boycott[i], tau_join_boycott)
+    
+    mu_sign_pet[i] <- alpha_sign_pet[country[i]] + beta_var * var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
+    mu_join_boycott[i] <- alpha_join_boycott[country[i]] + beta_var * var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
+  }
+
+  # Priors for country-level intercepts
+  for (j in 1:J) {
+    alpha_sign_pet[j] ~ dnorm(0, 0.001)
+    alpha_join_boycott[j] ~ dnorm(0, 0.001)
+  }
+  
+  # Priors for categorical variables
+  for (k in 1:K_gen_trust) {
+    gamma_gen_trust[k] ~ dnorm(0, 0.001)
+  }
+  for (l in 1:K_religiosity) {
+    gamma_religiosity[l] ~ dnorm(0, 0.001)
+  }
+
+  # Priors for slopes
+  beta_var ~ dnorm(0, 0.001)
+  beta_free_choice ~ dnorm(0, 0.001)
+  
+  # Priors for precision parameters
+  tau_sign_pet ~ dgamma(0.01, 0.01)
+  tau_join_boycott ~ dgamma(0.01, 0.01)
+}
+"
+
+# Prepare data for JAGS
+data_jags <- list(
+  N = nrow(final_imputet),
+  J = length(unique(final_imputet$country)),
+  K_gen_trust = length(unique(final_imputet$gen_trust)),
+  K_religiosity = length(unique(final_imputet$religiosity)),
+  country = as.integer(final_imputet$country),
+  gen_trust = as.integer(final_imputet$gen_trust),
+  religiosity = as.integer(final_imputet$religiosity),
+  sign_pet = final_imputet$sign_pet,
+  join_boycott = final_imputet$join_boycott,
+  free_choice = final_imputet$free_choice,
+  var = final_imputet$var
+)
+
+# Initialize parameters
+params_init <- list(
+  alpha_sign_pet = rep(0, length(unique(final_imputet$country))),
+  alpha_join_boycott = rep(0, length(unique(final_imputet$country))),
+  gamma_gen_trust = rep(0, length(unique(final_imputet$gen_trust))),
+  gamma_religiosity = rep(0, length(unique(final_imputet$religiosity))),
+  beta_var = 0,
+  beta_free_choice = 0,
+  tau_sign_pet = 1,
+  tau_join_boycott = 1
+)
+
+# Parameters to sample
+params_to_sample <- c("alpha_sign_pet", "alpha_join_boycott", "gamma_gen_trust", "gamma_religiosity", "beta_var", "beta_free_choice", "tau_sign_pet", "tau_join_boycott")
+
+# Run JAGS model
+jags_model <- jags.model(textConnection(model_string), data = data_jags, inits = params_init, n.chains = 3)
+update(jags_model, 1000)  # Burn-in
+
+# Generate MCMC samples
+samples <- coda.samples(jags_model, variable.names = params_to_sample, n.iter = 5000)
+
+# Diagnostics and Summaries
+
+# Gelman-Rubin Diagnostic
+gelman.diag(samples)
+
+# Trace plot
+traceplot(samples)
+
+# Summary statistics
+summary(samples)
+
+# Autocorrelation plot
+autocorr.plot(samples)
+
+# Effective sample size
+effectiveSize(samples)
+
+# Density plot
+densplot(samples, xlim = c(-3, 3))
+
+# Joint Marginal plot for selected parameters
+pairs(samples, pars = c("beta_var", "beta_free_choice"))
+
+```
+
+```{r}
+# Load the necessary libraries
+library(rjags)
+library(coda)
+
+# Convert categorical variables to factors
+final_imputet$gen_trust <- as.factor(final_imputet$gen_trust)
+final_imputet$religiosity <- as.factor(final_imputet$religiosity)
+final_imputet$gender <- as.factor(final_imputet$gender)
+final_imputet$employment <- as.factor(final_imputet$employment)
+
+# Define the JAGS model
+model_string <- model_string <- "
+model {
+  for (i in 1:N) {
+    sign_pet[i] ~ dnorm(mu_sign_pet[i], tau_sign_pet)
+    join_boycott[i] ~ dnorm(mu_join_boycott[i], tau_join_boycott)
+    
+    mu_sign_pet[i] <- alpha_sign_pet[country[i]] + beta_my_var * my_var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
+    mu_join_boycott[i] <- alpha_join_boycott[country[i]] + beta_my_var * my_var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
+  }
+
+  # Priors for country-level intercepts
+  for (j in 1:J) {
+    alpha_sign_pet[j] ~ dnorm(0, 0.001)
+    alpha_join_boycott[j] ~ dnorm(0, 0.001)
+  }
+  
+  # Priors for categorical variables
+  for (k in 1:K_gen_trust) {
+    gamma_gen_trust[k] ~ dnorm(0, 0.001)
+  }
+  for (l in 1:K_religiosity) {
+    gamma_religiosity[l] ~ dnorm(0, 0.001)
+  }
+
+  # Priors for slopes
+  beta_my_var ~ dnorm(0, 0.001)
+  beta_free_choice ~ dnorm(0, 0.001)
+  
+  # Priors for precision parameters
+  tau_sign_pet ~ dgamma(0.01, 0.01)
+  tau_join_boycott ~ dgamma(0.01, 0.01)
+}
+"
+
+
+# Prepare data for JAGS
+data_jags <- list(
+  N = nrow(final_imputet),
+  J = length(unique(final_imputet$country)),
+  K_gen_trust = length(unique(final_imputet$gen_trust)),
+  K_religiosity = length(unique(final_imputet$religiosity)),
+  country = as.integer(final_imputet$country),
+  gen_trust = as.integer(final_imputet$gen_trust),
+  religiosity = as.integer(final_imputet$religiosity),
+  sign_pet = final_imputet$sign_pet,
+  join_boycott = final_imputet$join_boycott,
+  free_choice = final_imputet$free_choice,
+  my_var = final_imputet$my_var  # Add my_var
+)
+
+# Initialize parameters
+params_init <- list(
+  alpha_sign_pet = rep(0, length(unique(final_imputet$country))),
+  alpha_join_boycott = rep(0, length(unique(final_imputet$country))),
+  gamma_gen_trust = rep(0, length(unique(final_imputet$gen_trust))),
+  gamma_religiosity = rep(0, length(unique(final_imputet$religiosity))),
+  beta_var = 0,
+  beta_free_choice = 0,
+  tau_sign_pet = 1,
+  tau_join_boycott = 1
+)
+
+# Parameters to sample
+params_to_sample <- c("alpha_sign_pet", "alpha_join_boycott", "gamma_gen_trust", "gamma_religiosity", "beta_var", "beta_free_choice", "tau_sign_pet", "tau_join_boycott")
+
+# Run JAGS model
+jags_model <- jags.model(textConnection(model_string), data = data_jags, inits = params_init, n.chains = 3)
+update(jags_model, 1000)  # Burn-in
+
+# Generate MCMC samples
+samples <- coda.samples(jags_model, variable.names = params_to_sample, n.iter = 5000)
+
+# Diagnostics and Summaries
+
+# Gelman-Rubin Diagnostic
+gelman.diag(samples)
+
+# Trace plot
+traceplot(samples)
+
+# Summary statistics
+summary(samples)
+
+# Autocorrelation plot
+autocorr.plot(samples)
+
+# Effective sample size
+effectiveSize(samples)
+
+# Density plot
+densplot(samples, xlim = c(-3, 3))
+
+# Joint Marginal plot for selected parameters
+pairs(samples, pars = c("beta_var", "beta_free_choice"))
+
+```
+
+```{r}
+library(rjags)
+library(coda)
+
+# Convert nominal and ordinal variables to factors
+nominal_vars <- c('gen_trust', 'religiosity', 'gender', 'employment', 'country')
+final_imputet[nominal_vars] <- lapply(final_imputet[nominal_vars], factor)
+
+# Prepare the data list for JAGS
+data_jags <- list(
+  N = nrow(final_imputet),
+  Y = final_imputet[,c('sign_pet', 'join_boycott', 'attend_demo', 'join_strike')],
+  IVs = final_imputet[,c('free_choice', 'life_satis', 'financial_satis', 'happiness', 'health')],
+  Ctrls = final_imputet[,c('age', 'gen_trust', 'religiosity', 'gender', 'employment')],
+  country = final_imputet$country,
+  var = final_imputet$var,
+  K = 4,  # number of dependent variables
+  P = 5  # number of predictors
+)
+
+# JAGS model specification
+model_string <- "
+model {
+  for(i in 1:N) {
+    for(k in 1:K) {
+      Y[i,k] ~ dnorm(mu[i,k], prec[k])
+      mu[i,k] <- alpha[k] + inprod(beta[k,1:P], IVs[i,1:P]) + u[country[i],k] + inprod(gamma[k,1:5], Ctrls[i,1:5])
+    }
+  }
+  
+  # Priors for fixed effects
+  for(k in 1:K) {
+    alpha[k] ~ dnorm(0, 0.001)
+    for(p in 1:P) {
+      beta[k,p] ~ dnorm(0, 0.001)
+    }
+    for(c in 1:5) {
+      gamma[k,c] ~ dnorm(0, 0.001)
+    }
+  }
+  
+  # Random effects
+  for(j in 1:max(country)) {
+    for(k in 1:K) {
+      u[j,k] ~ dnorm(0, prec_u[k])
+    }
+  }
+
+  # Precision parameters
+  for(k in 1:K) {
+    prec[k] ~ dgamma(0.001, 0.001)
+    prec_u[k] ~ dgamma(0.001, 0.001)
+  }
+}
+"
+
+# Initialize the model
+model <- jags.model(textConnection(model_string), data = data_jags)
+
+# Burn-in phase
+update(model, 1000)
+
+# Sampling phase
+samples <- coda.samples(model, variable.names = c('alpha', 'beta', 'u', 'prec', 'gamma'), n.iter = 5000)
+
+# Diagnostics
+summary(samples)
+effectiveSize(samples)
+gelman.diag(samples)
+autocorr.diag(samples)
+traceplot(samples)
+
+```
+
+
+```{r}
+# Load the required libraries
+library(corrplot)  # Add corrplot package
+
+# Calculate the overall correlation matrix for all countries
+overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+
+# Visualize the overall correlation matrix
+corrplot(overall_corr_matrix, method = "color")
+
+
+```
+
+```{r}
+# Load the required libraries
+library(corrplot)  # Add corrplot package
+
+# Calculate the overall correlation matrix for all countries
+overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+
+# Visualize the overall correlation matrix
+corrplot(overall_corr_matrix, method = "color")
+
+
+```
+
+```{r}
+# Load the required libraries
+library(corrplot)  # Add corrplot package
+
+# Calculate the overall p-values for all countries
+overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
+
+# Visualize the p-values for the overall correlation matrix
+corrplot(overall_p_values, method = "color")
+
+
+
+```
+
+```{r}
+# Load the required libraries
+library(corrplot)  # Add corrplot package
+library(RColorBrewer)  # For color palettes
+
+# Calculate the overall correlation matrix for all countries
+overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+
+# Calculate the overall p-values for all countries
+overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
+
+# Set the significance level (alpha)
+alpha <- 0.05
+
+# Filter the correlation matrix based on p-values
+significant_corr_matrix <- overall_corr_matrix * (overall_p_values < alpha)
+
+# Create a color palette for the heatmap
+color_palette <- colorRampPalette(c("blue", "white", "red"))(n = 100)
+
+# Visualize the significant correlations using a heatmap
+corrplot(significant_corr_matrix, method = "color", col = color_palette,
+         is.corr = FALSE, addCoef.col = "black", number.cex = 0.7)
 
 ```
