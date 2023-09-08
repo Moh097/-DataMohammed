@@ -1088,369 +1088,211 @@ saveWorkbook(wb, "Correlation_and_Pvalues_By_Country_and_All_Countries.xlsx", ov
 
 ```
 
-multilevel analysis
-```{r}
-# Load necessary packages
-library(lme4)
-library(tidyverse)
-model1 <- lmer(sign_pet ~ happiness + health + free_choice + life_satis + financial_satis + 
-               gen_trust + age + gender + employment + religiosity + 
-               (1|country) + var, data = final_dataset)
-```
 
 ```{r}
-# Load the necessary libraries
+# Load the rjags package
 library(rjags)
-library(coda)
-
-# Convert categorical variables to factors
-final_imputet$gen_trust <- as.factor(final_imputet$gen_trust)
-final_imputet$religiosity <- as.factor(final_imputet$religiosity)
-final_imputet$gender <- as.factor(final_imputet$gender)
-final_imputet$employment <- as.factor(final_imputet$employment)
-
-# Define the JAGS model
-model_string <- "model {
-  for (i in 1:N) {
-    sign_pet[i] ~ dnorm(mu_sign_pet[i], tau_sign_pet)
-    join_boycott[i] ~ dnorm(mu_join_boycott[i], tau_join_boycott)
-    
-    mu_sign_pet[i] <- alpha_sign_pet[country[i]] + beta_var * var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
-    mu_join_boycott[i] <- alpha_join_boycott[country[i]] + beta_var * var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
-  }
-
-  # Priors for country-level intercepts
-  for (j in 1:J) {
-    alpha_sign_pet[j] ~ dnorm(0, 0.001)
-    alpha_join_boycott[j] ~ dnorm(0, 0.001)
-  }
-  
-  # Priors for categorical variables
-  for (k in 1:K_gen_trust) {
-    gamma_gen_trust[k] ~ dnorm(0, 0.001)
-  }
-  for (l in 1:K_religiosity) {
-    gamma_religiosity[l] ~ dnorm(0, 0.001)
-  }
-
-  # Priors for slopes
-  beta_var ~ dnorm(0, 0.001)
-  beta_free_choice ~ dnorm(0, 0.001)
-  
-  # Priors for precision parameters
-  tau_sign_pet ~ dgamma(0.01, 0.01)
-  tau_join_boycott ~ dgamma(0.01, 0.01)
-}
-"
 
 # Prepare data for JAGS
-data_jags <- list(
+data_list <- list(
   N = nrow(final_imputet),
-  J = length(unique(final_imputet$country)),
-  K_gen_trust = length(unique(final_imputet$gen_trust)),
-  K_religiosity = length(unique(final_imputet$religiosity)),
-  country = as.integer(final_imputet$country),
-  gen_trust = as.integer(final_imputet$gen_trust),
-  religiosity = as.integer(final_imputet$religiosity),
   sign_pet = final_imputet$sign_pet,
   join_boycott = final_imputet$join_boycott,
+  attend_demo = final_imputet$attend_demo,
+  join_strike = final_imputet$join_strike,
   free_choice = final_imputet$free_choice,
-  var = final_imputet$var
-)
-
-# Initialize parameters
-params_init <- list(
-  alpha_sign_pet = rep(0, length(unique(final_imputet$country))),
-  alpha_join_boycott = rep(0, length(unique(final_imputet$country))),
-  gamma_gen_trust = rep(0, length(unique(final_imputet$gen_trust))),
-  gamma_religiosity = rep(0, length(unique(final_imputet$religiosity))),
-  beta_var = 0,
-  beta_free_choice = 0,
-  tau_sign_pet = 1,
-  tau_join_boycott = 1
-)
-
-# Parameters to sample
-params_to_sample <- c("alpha_sign_pet", "alpha_join_boycott", "gamma_gen_trust", "gamma_religiosity", "beta_var", "beta_free_choice", "tau_sign_pet", "tau_join_boycott")
-
-# Run JAGS model
-jags_model <- jags.model(textConnection(model_string), data = data_jags, inits = params_init, n.chains = 3)
-update(jags_model, 1000)  # Burn-in
-
-# Generate MCMC samples
-samples <- coda.samples(jags_model, variable.names = params_to_sample, n.iter = 5000)
-
-# Diagnostics and Summaries
-
-# Gelman-Rubin Diagnostic
-gelman.diag(samples)
-
-# Trace plot
-traceplot(samples)
-
-# Summary statistics
-summary(samples)
-
-# Autocorrelation plot
-autocorr.plot(samples)
-
-# Effective sample size
-effectiveSize(samples)
-
-# Density plot
-densplot(samples, xlim = c(-3, 3))
-
-# Joint Marginal plot for selected parameters
-pairs(samples, pars = c("beta_var", "beta_free_choice"))
-
-```
-
-```{r}
-# Load the necessary libraries
-library(rjags)
-library(coda)
-
-# Convert categorical variables to factors
-final_imputet$gen_trust <- as.factor(final_imputet$gen_trust)
-final_imputet$religiosity <- as.factor(final_imputet$religiosity)
-final_imputet$gender <- as.factor(final_imputet$gender)
-final_imputet$employment <- as.factor(final_imputet$employment)
-
-# Define the JAGS model
-model_string <- model_string <- "
-model {
-  for (i in 1:N) {
-    sign_pet[i] ~ dnorm(mu_sign_pet[i], tau_sign_pet)
-    join_boycott[i] ~ dnorm(mu_join_boycott[i], tau_join_boycott)
-    
-    mu_sign_pet[i] <- alpha_sign_pet[country[i]] + beta_my_var * my_var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
-    mu_join_boycott[i] <- alpha_join_boycott[country[i]] + beta_my_var * my_var[i] + beta_free_choice * free_choice[i] + gamma_gen_trust[gen_trust[i]] + gamma_religiosity[religiosity[i]]
-  }
-
-  # Priors for country-level intercepts
-  for (j in 1:J) {
-    alpha_sign_pet[j] ~ dnorm(0, 0.001)
-    alpha_join_boycott[j] ~ dnorm(0, 0.001)
-  }
-  
-  # Priors for categorical variables
-  for (k in 1:K_gen_trust) {
-    gamma_gen_trust[k] ~ dnorm(0, 0.001)
-  }
-  for (l in 1:K_religiosity) {
-    gamma_religiosity[l] ~ dnorm(0, 0.001)
-  }
-
-  # Priors for slopes
-  beta_my_var ~ dnorm(0, 0.001)
-  beta_free_choice ~ dnorm(0, 0.001)
-  
-  # Priors for precision parameters
-  tau_sign_pet ~ dgamma(0.01, 0.01)
-  tau_join_boycott ~ dgamma(0.01, 0.01)
-}
-"
-
-
-# Prepare data for JAGS
-data_jags <- list(
-  N = nrow(final_imputet),
-  J = length(unique(final_imputet$country)),
-  K_gen_trust = length(unique(final_imputet$gen_trust)),
-  K_religiosity = length(unique(final_imputet$religiosity)),
+  life_satis = final_imputet$life_satis,
+  financial_satis = final_imputet$financial_satis,
+  happiness = final_imputet$happiness,
+  health = final_imputet$health,
+  voice_account_score = final_imputet$var,
   country = as.integer(final_imputet$country),
-  gen_trust = as.integer(final_imputet$gen_trust),
-  religiosity = as.integer(final_imputet$religiosity),
-  sign_pet = final_imputet$sign_pet,
-  join_boycott = final_imputet$join_boycott,
-  free_choice = final_imputet$free_choice,
-  my_var = final_imputet$my_var  # Add my_var
+  n_country = length(unique(final_imputet$country))
 )
 
-# Initialize parameters
-params_init <- list(
-  alpha_sign_pet = rep(0, length(unique(final_imputet$country))),
-  alpha_join_boycott = rep(0, length(unique(final_imputet$country))),
-  gamma_gen_trust = rep(0, length(unique(final_imputet$gen_trust))),
-  gamma_religiosity = rep(0, length(unique(final_imputet$religiosity))),
-  beta_var = 0,
-  beta_free_choice = 0,
-  tau_sign_pet = 1,
-  tau_join_boycott = 1
-)
-
-# Parameters to sample
-params_to_sample <- c("alpha_sign_pet", "alpha_join_boycott", "gamma_gen_trust", "gamma_religiosity", "beta_var", "beta_free_choice", "tau_sign_pet", "tau_join_boycott")
-
-# Run JAGS model
-jags_model <- jags.model(textConnection(model_string), data = data_jags, inits = params_init, n.chains = 3)
-update(jags_model, 1000)  # Burn-in
-
-# Generate MCMC samples
-samples <- coda.samples(jags_model, variable.names = params_to_sample, n.iter = 5000)
-
-# Diagnostics and Summaries
-
-# Gelman-Rubin Diagnostic
-gelman.diag(samples)
-
-# Trace plot
-traceplot(samples)
-
-# Summary statistics
-summary(samples)
-
-# Autocorrelation plot
-autocorr.plot(samples)
-
-# Effective sample size
-effectiveSize(samples)
-
-# Density plot
-densplot(samples, xlim = c(-3, 3))
-
-# Joint Marginal plot for selected parameters
-pairs(samples, pars = c("beta_var", "beta_free_choice"))
-
-```
-
-```{r}
-library(rjags)
-library(coda)
-
-# Convert nominal and ordinal variables to factors
-nominal_vars <- c('gen_trust', 'religiosity', 'gender', 'employment', 'country')
-final_imputet[nominal_vars] <- lapply(final_imputet[nominal_vars], factor)
-
-# Prepare the data list for JAGS
-data_jags <- list(
-  N = nrow(final_imputet),
-  Y = final_imputet[,c('sign_pet', 'join_boycott', 'attend_demo', 'join_strike')],
-  IVs = final_imputet[,c('free_choice', 'life_satis', 'financial_satis', 'happiness', 'health')],
-  Ctrls = final_imputet[,c('age', 'gen_trust', 'religiosity', 'gender', 'employment')],
-  country = final_imputet$country,
-  var = final_imputet$var,
-  K = 4,  # number of dependent variables
-  P = 5  # number of predictors
-)
-
-# JAGS model specification
+# Model specification
 model_string <- "
 model {
-  for(i in 1:N) {
-    for(k in 1:K) {
-      Y[i,k] ~ dnorm(mu[i,k], prec[k])
-      mu[i,k] <- alpha[k] + inprod(beta[k,1:P], IVs[i,1:P]) + u[country[i],k] + inprod(gamma[k,1:5], Ctrls[i,1:5])
-    }
+  for (i in 1:N) {
+    sign_pet[i] ~ dnorm(mu_sign[i], tau_sign)
+    mu_sign[i] <- alpha_sign + beta_free_choice * free_choice[i] + beta_happiness * happiness[i] + beta_voice * voice_account_score[i] + u_sign[country[i]]
+    
+    join_boycott[i] ~ dnorm(mu_boycott[i], tau_boycott)
+    mu_boycott[i] <- alpha_boycott + beta_life_satis * life_satis[i] + beta_health * health[i] + beta_voice * voice_account_score[i] + u_boycott[country[i]]
+    
+    attend_demo[i] ~ dnorm(mu_demo[i], tau_demo)
+    mu_demo[i] <- alpha_demo + beta_financial_satis * financial_satis[i] + beta_voice * voice_account_score[i] + u_demo[country[i]]
+    
+    join_strike[i] ~ dnorm(mu_strike[i], tau_strike)
+    mu_strike[i] <- alpha_strike + beta_health * health[i] + beta_voice * voice_account_score[i] + u_strike[country[i]]
   }
   
   # Priors for fixed effects
-  for(k in 1:K) {
-    alpha[k] ~ dnorm(0, 0.001)
-    for(p in 1:P) {
-      beta[k,p] ~ dnorm(0, 0.001)
-    }
-    for(c in 1:5) {
-      gamma[k,c] ~ dnorm(0, 0.001)
-    }
+  alpha_sign ~ dnorm(0, 0.001)
+  beta_free_choice ~ dnorm(0, 0.001)
+  beta_happiness ~ dnorm(0, 0.001)
+  
+  alpha_boycott ~ dnorm(0, 0.001)
+  beta_life_satis ~ dnorm(0, 0.001)
+  beta_health ~ dnorm(0, 0.001)
+
+  alpha_demo ~ dnorm(0, 0.001)
+  beta_financial_satis ~ dnorm(0, 0.001)
+  
+  alpha_strike ~ dnorm(0, 0.001)
+  
+  beta_voice ~ dnorm(0, 0.001)  # Declare beta_voice only once
+
+  # Random effects for countries
+  for (j in 1:n_country) {
+    u_sign[j] ~ dnorm(0, tau_u_sign)
+    u_boycott[j] ~ dnorm(0, tau_u_boycott)
+    u_demo[j] ~ dnorm(0, tau_u_demo)
+    u_strike[j] ~ dnorm(0, tau_u_strike)
   }
   
-  # Random effects
-  for(j in 1:max(country)) {
-    for(k in 1:K) {
-      u[j,k] ~ dnorm(0, prec_u[k])
-    }
-  }
-
   # Precision parameters
-  for(k in 1:K) {
-    prec[k] ~ dgamma(0.001, 0.001)
-    prec_u[k] ~ dgamma(0.001, 0.001)
-  }
+  tau_sign ~ dgamma(0.001, 0.001)
+  tau_boycott ~ dgamma(0.001, 0.001)
+  tau_demo ~ dgamma(0.001, 0.001)
+  tau_strike ~ dgamma(0.001, 0.001)
+  
+  tau_u_sign ~ dgamma(0.001, 0.001)
+  tau_u_boycott ~ dgamma(0.001, 0.001)
+  tau_u_demo ~ dgamma(0.001, 0.001)
+  tau_u_strike ~ dgamma(0.001, 0.001)
 }
 "
 
-# Initialize the model
-model <- jags.model(textConnection(model_string), data = data_jags)
+# Initialize model
+jags_model <- jags.model(textConnection(model_string), data = data_list)
 
-# Burn-in phase
-update(model, 1000)
+# Update the model (Burn-in)
+update(jags_model, 1000)
 
-# Sampling phase
-samples <- coda.samples(model, variable.names = c('alpha', 'beta', 'u', 'prec', 'gamma'), n.iter = 5000)
+# Sample from the posterior distribution
+samples <- coda.samples(jags_model, variable.names = c("alpha_sign", "beta_free_choice", "beta_happiness", "beta_voice", "alpha_boycott", "beta_life_satis", "beta_health", "alpha_demo", "beta_financial_satis", "alpha_strike"), n.iter = 1000)
 
-# Diagnostics
+# Summary statistics
 summary(samples)
-effectiveSize(samples)
-gelman.diag(samples)
-autocorr.diag(samples)
-traceplot(samples)
+
+```
+
+```{r}
+# Load the rjags package
+library(rjags)
+
+# Prepare data for JAGS
+data_list <- list(
+  N = nrow(final_imputet),
+  sign_pet = final_imputet$sign_pet,
+  join_boycott = final_imputet$join_boycott,
+  attend_demo = final_imputet$attend_demo,
+  join_strike = final_imputet$join_strike,
+  free_choice = final_imputet$free_choice,
+  life_satis = final_imputet$life_satis,
+  financial_satis = final_imputet$financial_satis,
+  happiness = final_imputet$happiness,
+  health = final_imputet$health,
+  voice_account_score = final_imputet$var,
+  country = as.integer(final_imputet$country),
+  n_country = length(unique(final_imputet$country))
+)
+
+# Model specification
+model_string <- "
+model {
+  for (i in 1:N) {
+    sign_pet[i] ~ dnorm(mu_sign[i], tau_sign)
+    mu_sign[i] <- alpha_sign + beta_free_choice[country[i]] * free_choice[i] + beta_happiness[country[i]] * happiness[i] + beta_voice[country[i]] * voice_account_score[i] + u_sign[country[i]]
+    
+    join_boycott[i] ~ dnorm(mu_boycott[i], tau_boycott)
+    mu_boycott[i] <- alpha_boycott + beta_life_satis[country[i]] * life_satis[i] + beta_health[country[i]] * health[i] + beta_voice[country[i]] * voice_account_score[i] + u_boycott[country[i]]
+    
+    attend_demo[i] ~ dnorm(mu_demo[i], tau_demo)
+    mu_demo[i] <- alpha_demo + beta_financial_satis[country[i]] * financial_satis[i] + beta_voice[country[i]] * voice_account_score[i] + u_demo[country[i]]
+    
+    join_strike[i] ~ dnorm(mu_strike[i], tau_strike)
+    mu_strike[i] <- alpha_strike + beta_health[country[i]] * health[i] + beta_voice[country[i]] * voice_account_score[i] + u_strike[country[i]]
+  }
+  
+  # Priors for fixed effects
+  alpha_sign ~ dnorm(0, 0.001)
+  alpha_boycott ~ dnorm(0, 0.001)
+  alpha_demo ~ dnorm(0, 0.001)
+  alpha_strike ~ dnorm(0, 0.001)
+  
+  for (j in 1:n_country) {
+    beta_free_choice[j] ~ dnorm(0, 0.001)
+    beta_happiness[j] ~ dnorm(0, 0.001)
+    beta_life_satis[j] ~ dnorm(0, 0.001)
+    beta_health[j] ~ dnorm(0, 0.001)
+    beta_financial_satis[j] ~ dnorm(0, 0.001)
+    beta_voice[j] ~ dnorm(0, 0.001)
+  
+    # Random effects for countries
+    u_sign[j] ~ dnorm(0, tau_u_sign)
+    u_boycott[j] ~ dnorm(0, tau_u_boycott)
+    u_demo[j] ~ dnorm(0, tau_u_demo)
+    u_strike[j] ~ dnorm(0, tau_u_strike)
+  }
+
+  # Precision parameters
+  tau_sign ~ dgamma(0.001, 0.001)
+  tau_boycott ~ dgamma(0.001, 0.001)
+  tau_demo ~ dgamma(0.001, 0.001)
+  tau_strike ~ dgamma(0.001, 0.001)
+  
+  tau_u_sign ~ dgamma(0.001, 0.001)
+  tau_u_boycott ~ dgamma(0.001, 0.001)
+  tau_u_demo ~ dgamma(0.001, 0.001)
+  tau_u_strike ~ dgamma(0.001, 0.001)
+}
+"
+
+# Initialize model
+jags_model <- jags.model(textConnection(model_string), data = data_list)
+
+# Update the model (Burn-in)
+update(jags_model, 1000)
+
+# Sample from the posterior distribution
+samples <- coda.samples(jags_model, variable.names = c("alpha_sign", "beta_free_choice", "beta_happiness", "beta_voice", "alpha_boycott", "beta_life_satis", "beta_health", "alpha_demo", "beta_financial_satis", "alpha_strike"), n.iter = 1000)
+
+# Summary statistics
+summary(samples)
 
 ```
 
 
 ```{r}
-# Load the required libraries
-library(corrplot)  # Add corrplot package
+library(openxlsx)
 
-# Calculate the overall correlation matrix for all countries
-overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
+# Create a new workbook
+wb <- createWorkbook()
 
-# Visualize the overall correlation matrix
-corrplot(overall_corr_matrix, method = "color")
+# Loop over each unique country in your dataset
+for (country_id in unique(final_imputet$country)) {
+  
+  # Assume you have a way to get the relevant samples subset for this country
+  # Replace the next line with your own logic
+  country_specific_samples <- subset(samples, country == country_id) # Update this line
+  
+  # Extract summary statistics for these samples
+  country_summary <- summary(country_specific_samples)
+  
+  # Convert summary into a data.frame for Excel writing
+  summary_df <- as.data.frame(as.matrix(country_summary))
+  
+  # Create a new sheet in the workbook for this country
+  sheet_name <- paste("Country", country_id)
+  addWorksheet(wb, sheet_name)
+  
+  # Write the data.frame to this worksheet
+  writeData(wb, sheet = sheet_name, x = summary_df)
+}
 
-
-```
-
-```{r}
-# Load the required libraries
-library(corrplot)  # Add corrplot package
-
-# Calculate the overall correlation matrix for all countries
-overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
-
-# Visualize the overall correlation matrix
-corrplot(overall_corr_matrix, method = "color")
-
-
-```
-
-```{r}
-# Load the required libraries
-library(corrplot)  # Add corrplot package
-
-# Calculate the overall p-values for all countries
-overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
-
-# Visualize the p-values for the overall correlation matrix
-corrplot(overall_p_values, method = "color")
-
-
-
-```
-
-```{r}
-# Load the required libraries
-library(corrplot)  # Add corrplot package
-library(RColorBrewer)  # For color palettes
-
-# Calculate the overall correlation matrix for all countries
-overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
-
-# Calculate the overall p-values for all countries
-overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
-
-# Set the significance level (alpha)
-alpha <- 0.05
-
-# Filter the correlation matrix based on p-values
-significant_corr_matrix <- overall_corr_matrix * (overall_p_values < alpha)
-
-# Create a color palette for the heatmap
-color_palette <- colorRampPalette(c("blue", "white", "red"))(n = 100)
-
-# Visualize the significant correlations using a heatmap
-corrplot(significant_corr_matrix, method = "color", col = color_palette,
-         is.corr = FALSE, addCoef.col = "black", number.cex = 0.7)
+# Save workbook
+saveWorkbook(wb, "Country_Specific_Summaries.xlsx", overwrite = TRUE)
 
 ```
