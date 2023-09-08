@@ -250,7 +250,10 @@ plot_na_intersect(merged_data)
 
 renaming the data in the data set.
 ```{r}
-#=======employment==========================================================================
+library(dplyr)
+
+#=======employment=========================================================================
+
 employment_mapping <- c(
   "1" = "Full time",
   "2" = "Part time",
@@ -380,10 +383,7 @@ religiosity_mapping <- c(
   "null" = "null"
 )
 
-#=======adding changes to new data frame====================================================
-
-merged_renamed <- merged_data_recoded %>%
-  mutate(
+merged_renamed <- mutate(final_imputet,
     employment = employment_mapping[as.character(employment)],
     join_strike = join_strike_mapping[as.character(join_strike)],
     attend_demo = attend_demo_mapping[as.character(attend_demo)],
@@ -397,18 +397,18 @@ merged_renamed <- merged_data_recoded %>%
     happiness = happiness_mapping[as.character(happiness)],
     gender = gender_mapping[as.character(gender)],
     religiosity = religiosity_mapping[as.character(religiosity)]
-  )
+)
 ```
 
-creating a data frame to do iterations and imputation then do the missForest imputation method to handle the missing data.
+creating a data frame to do iterations and imputation then do the missForest *imputation* method to handle the missing data.
 ```{r}
 library(missRanger)
 library(ggplot2)
 
-merged_data_na <- data.frame(final_dataset)
+final_imputet <- data.frame(final_dataset)
 
 final_imputet <- missRanger(
-  merged_data_na, 
+  final_imputet, 
   formula = . ~ . ,
   num.trees = 1000, 
   verbose = 2, 
@@ -793,24 +793,13 @@ system(paste(pdf_file, " &", sep = ""))
 
 ```
 
-```{r}
-# Specify the columns where you want to remove rows with NULL values
-columns_to_check <- c("happiness", "health", "sign_pet", "join_boycott", "attend_demo", "join_strike")
-
-# Create a new data frame with rows removed where NULL values are present in the specified columns
-merged_renamed_without_NA <- merged_renamed[complete.cases(merged_renamed[, columns_to_check]), ]
-
-
-```
-
-
+visualize the median for *happiness, health, sign_pet, join_boycott, attend_demo, join_strike* across countries. and save it in one PDF
 ```{r}
 # Load required libraries
 library(ggplot2)
-library(patchwork)
 
 # List of unique countries
-unique_countries <- unique(merged_renamed_without_NA$country)
+unique_countries <- unique(final_imputet$country)
 
 # Specify the variables for which you want to calculate and visualize the median
 variables_to_analyze <- c("happiness", "health", "sign_pet", "join_boycott", "attend_demo", "join_strike")
@@ -819,31 +808,25 @@ variables_to_analyze <- c("happiness", "health", "sign_pet", "join_boycott", "at
 pdf_file <- "median_plots.pdf"
 pdf(pdf_file, width = 8, height = 6)
 
-# Loop through each variable and generate the median plot
 for (variable_name in variables_to_analyze) {
   median_data_all_countries <- data.frame(
-    Country = character(0),  # Initialize an empty character vector
-    Median = numeric(0)      # Initialize an empty numeric vector
+    Country = character(0),
+    Median = numeric(0)
   )
-
-  # Loop through each unique country
+  
   for (country_code in unique_countries) {
-    # Subset data for the current country and variable
-    subset_data <- merged_renamed_without_NA[merged_renamed_without_NA$country == country_code, variable_name]
+    subset_data <- final_imputet[final_imputet$country == country_code, variable_name]
     
-    # Check if there are any non-missing values for this country and variable
+    # Convert subset_data to numeric
+    subset_data <- as.numeric(subset_data)
+    
     if (length(subset_data) > 0 && !all(is.na(subset_data))) {
-      # Calculate the median
       median_value <- median(subset_data, na.rm = TRUE)
-      
-      # Add it to the data frame
       median_data_all_countries <- rbind(median_data_all_countries, data.frame(Country = country_code, Median = median_value))
     }
   }
-
-  # Check if there is any valid data for the current variable
+  
   if (nrow(median_data_all_countries) > 0) {
-    # Create a box plot for median values across all countries
     median_plot_all_countries <- ggplot(median_data_all_countries, aes(x = reorder(Country, Median), y = Median)) +
       geom_boxplot() +
       labs(title = paste("Median of", variable_name, "Across All Countries"),
@@ -851,11 +834,9 @@ for (variable_name in variables_to_analyze) {
            y = "Median") +
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-    # Print the median plot for the current variable
+    
     print(median_plot_all_countries)
     
-    # Add a page break
     cat("\f")
   }
 }
@@ -869,7 +850,87 @@ system(paste(pdf_file, " &", sep = ""))
 
 ```
 
-correlation with P values.
+visualize the median for *free_choice, life_satis, financial_satis* across countries. and save it in one PDF
+```{r}
+# Load required libraries
+library(dplyr)
+library(ggplot2)
+library(tidyr)  
+
+# Select the columns for calculation and visualization
+columns_to_analyze <- c("free_choice", "life_satis", "financial_satis")
+
+# Get unique countries in the dataset
+unique_countries <- unique(final_imputet$country)
+
+# Create a PDF file to save all country plots
+pdf_file <- "country_mean_plots.pdf"
+pdf(pdf_file, width = 8, height = 6)
+
+# Loop through each unique country
+for (country_code in unique_countries) {
+  # Subset data for the current country
+  data_to_analyze <- final_imputet %>%
+    filter(country == country_code) %>%
+    select(all_of(columns_to_analyze))
+
+  # Calculate the mean of selected columns
+  mean_values <- data_to_analyze %>%
+    summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
+
+  # Reshape the data for visualization
+  mean_data <- mean_values %>%
+    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Mean_Value")
+
+  # Map the labels to the mean values
+  labels <- c(
+    "life_satis" = c("1" = "Dissatisfied", "2" = "2", "3" = "3", "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8", "9" = "9", "10" = "Satisfied"),
+    "free_choice" = c("1" = "None at all", "2" = "2", "3" = "3", "4" = "4", "5" = "5", "6" = "6", "7" = "7", "8" = "8", "9" = "9", "10" = "A great deal")
+  )
+
+  mean_data$Variable <- ifelse(mean_data$Variable %in% names(labels), labels[[mean_data$Variable]][as.character(mean_data$Variable)], mean_data$Variable)
+
+  # Create a bar plot to visualize the mean values for the current country
+  mean_plot <- ggplot(mean_data, aes(x = Variable, y = Mean_Value)) +
+    geom_bar(stat = "identity") +
+    labs(title = paste("Mean Values for Selected Columns - Country:", country_code),
+         x = "Labels",
+         y = "Mean Value") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  # Print the plot to the PDF file
+  print(mean_plot)
+}
+
+# Add a page to compare the mean values across countries
+# Calculate mean values across all countries
+global_mean_values <- final_imputet %>%
+  select(all_of(columns_to_analyze)) %>%
+  summarise(across(everything(), ~ mean(.x, na.rm = TRUE))) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Mean_Value")
+
+# Map labels to the global mean values
+global_mean_values$Variable <- ifelse(global_mean_values$Variable %in% names(labels), labels[[global_mean_values$Variable]][as.character(global_mean_values$Variable)], global_mean_values$Variable)
+
+# Create a bar plot to visualize the global mean values
+global_mean_plot <- ggplot(global_mean_values, aes(x = Variable, y = Mean_Value)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Values for Selected Columns - Across All Countries",
+       x = "Labels",
+       y = "Mean Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print the global mean plot to the PDF file
+print(global_mean_plot)
+
+# Close the PDF file
+dev.off()
+
+```
+
+correlation with P values without *final_imputet*.
 ```{r}
 # Install and load the required packages
 library(Hmisc)
@@ -879,7 +940,7 @@ library(openxlsx)
 wb <- createWorkbook()
 
 # List of unique countries
-unique_countries <- unique(merged_imputet_rounded$country)
+unique_countries <- unique(final_imputet$country)
 
 # Variables of interest
 var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
@@ -893,7 +954,7 @@ all_p_values <- NULL
 # Loop through each country
 for (ctry in unique_countries) {
   # Subset data for each country
-  subset_data <- subset(merged_imputet_rounded, country == ctry)
+  subset_data <- subset(final_imputet, country == ctry)
   
   # Generate correlation matrix and p-values
   corr_object <- rcorr(as.matrix(subset_data[, var_of_interest]))
@@ -927,8 +988,8 @@ for (ctry in unique_countries) {
 addWorksheet(wb, sheetName = "All_Countries_Correlation")
 
 # Calculate the overall correlation matrix and p-values for all countries
-overall_corr_matrix <- rcorr(as.matrix(final_dataset[, var_of_interest]))$r
-overall_p_values <- rcorr(as.matrix(final_dataset[, var_of_interest]))$P
+overall_corr_matrix <- rcorr(as.matrix(final_imputet[, var_of_interest]))$r
+overall_p_values <- rcorr(as.matrix(final_imputet[, var_of_interest]))$P
 
 # Write the overall correlation matrix with variable names on the left side
 overall_corr_data <- cbind(variables = rownames(overall_corr_matrix), overall_corr_matrix)
@@ -948,6 +1009,7 @@ saveWorkbook(wb, "Correlation_and_Pvalues_By_Country_and_All_Countries_imputet.x
 
 ```
 
+correlation with P values without *final_dataset*.
 ```{r}
 # Install and load the required packages
 library(Hmisc)
@@ -957,7 +1019,7 @@ library(openxlsx)
 wb <- createWorkbook()
 
 # List of unique countries
-unique_countries <- unique(merged_data_recoded$country)
+unique_countries <- unique(final_dataset$country)
 
 # Variables of interest
 var_of_interest <- c("happiness", "health", "free_choice", "life_satis", "financial_satis",
@@ -971,7 +1033,7 @@ all_p_values <- NULL
 # Loop through each country
 for (ctry in unique_countries) {
   # Subset data for each country
-  subset_data <- subset(merged_data_recoded, country == ctry)
+  subset_data <- subset(final_dataset, country == ctry)
   
   # Generate correlation matrix and p-values
   corr_object <- rcorr(as.matrix(subset_data[, var_of_interest]))
