@@ -1106,193 +1106,72 @@ data_list <- list(
   happiness = final_imputet$happiness,
   health = final_imputet$health,
   voice_account_score = final_imputet$var,
+  gen_trust = final_imputet$gen_trust,
+  religiosity = final_imputet$religiosity,
+  gender = final_imputet$gender,
+  employment = final_imputet$employment,
   country = as.integer(final_imputet$country),
   n_country = length(unique(final_imputet$country))
 )
 
-# Model specification
+# Model specification with interaction terms
 model_string <- "
 model {
   for (i in 1:N) {
     sign_pet[i] ~ dnorm(mu_sign[i], tau_sign)
-    mu_sign[i] <- alpha_sign + beta_free_choice * free_choice[i] + beta_happiness * happiness[i] + beta_voice * voice_account_score[i] + u_sign[country[i]]
-    
+    mu_sign[i] <- alpha_sign[country[i]] + beta_voice[country[i]] * voice_account_score[i] + beta_free_choice * free_choice[i] + beta_voice_free_choice[country[i]] * voice_account_score[i] * free_choice[i]  + beta_happiness * happiness[i] + beta_gen_trust * gen_trust[i] + beta_religiosity * religiosity[i] + beta_gender * gender[i] + beta_employment * employment[i]
+  
     join_boycott[i] ~ dnorm(mu_boycott[i], tau_boycott)
-    mu_boycott[i] <- alpha_boycott + beta_life_satis * life_satis[i] + beta_health * health[i] + beta_voice * voice_account_score[i] + u_boycott[country[i]]
-    
+    mu_boycott[i] <- alpha_boycott[country[i]] + beta_voice[country[i]] * voice_account_score[i] + beta_life_satis * life_satis[i] + beta_voice_life_satis[country[i]] * voice_account_score[i] * life_satis[i] + beta_health * health[i]
+  
     attend_demo[i] ~ dnorm(mu_demo[i], tau_demo)
-    mu_demo[i] <- alpha_demo + beta_financial_satis * financial_satis[i] + beta_voice * voice_account_score[i] + u_demo[country[i]]
-    
+    mu_demo[i] <- alpha_demo[country[i]] + beta_voice[country[i]] * voice_account_score[i] + beta_financial_satis * financial_satis[i] + beta_voice_financial_satis[country[i]] * voice_account_score[i] * financial_satis[i]
+  
     join_strike[i] ~ dnorm(mu_strike[i], tau_strike)
-    mu_strike[i] <- alpha_strike + beta_health * health[i] + beta_voice * voice_account_score[i] + u_strike[country[i]]
+    mu_strike[i] <- alpha_strike[country[i]] + beta_voice[country[i]] * voice_account_score[i] + beta_health * health[i] + beta_voice_health[country[i]] * voice_account_score[i] * health[i]
   }
   
-  # Priors for fixed effects
-  alpha_sign ~ dnorm(0, 0.001)
+  # Individual-level fixed effects
   beta_free_choice ~ dnorm(0, 0.001)
   beta_happiness ~ dnorm(0, 0.001)
-  
-  alpha_boycott ~ dnorm(0, 0.001)
   beta_life_satis ~ dnorm(0, 0.001)
   beta_health ~ dnorm(0, 0.001)
-
-  alpha_demo ~ dnorm(0, 0.001)
   beta_financial_satis ~ dnorm(0, 0.001)
+  beta_gen_trust ~ dnorm(0, 0.001)
+  beta_religiosity ~ dnorm(0, 0.001)
+  beta_gender ~ dnorm(0, 0.001)
+  beta_employment ~ dnorm(0, 0.001)
   
-  alpha_strike ~ dnorm(0, 0.001)
-  
-  beta_voice ~ dnorm(0, 0.001)  # Declare beta_voice only once
-
-  # Random effects for countries
+  # Country-level fixed effects and interaction terms
   for (j in 1:n_country) {
-    u_sign[j] ~ dnorm(0, tau_u_sign)
-    u_boycott[j] ~ dnorm(0, tau_u_boycott)
-    u_demo[j] ~ dnorm(0, tau_u_demo)
-    u_strike[j] ~ dnorm(0, tau_u_strike)
-  }
-  
-  # Precision parameters
-  tau_sign ~ dgamma(0.001, 0.001)
-  tau_boycott ~ dgamma(0.001, 0.001)
-  tau_demo ~ dgamma(0.001, 0.001)
-  tau_strike ~ dgamma(0.001, 0.001)
-  
-  tau_u_sign ~ dgamma(0.001, 0.001)
-  tau_u_boycott ~ dgamma(0.001, 0.001)
-  tau_u_demo ~ dgamma(0.001, 0.001)
-  tau_u_strike ~ dgamma(0.001, 0.001)
-}
-"
-
-# Initialize model
-jags_model <- jags.model(textConnection(model_string), data = data_list)
-
-# Update the model (Burn-in)
-update(jags_model, 1000)
-
-# Sample from the posterior distribution
-samples <- coda.samples(jags_model, variable.names = c("alpha_sign", "beta_free_choice", "beta_happiness", "beta_voice", "alpha_boycott", "beta_life_satis", "beta_health", "alpha_demo", "beta_financial_satis", "alpha_strike"), n.iter = 1000)
-
-# Summary statistics
-summary(samples)
-
-```
-
-```{r}
-# Load the rjags package
-library(rjags)
-
-# Prepare data for JAGS
-data_list <- list(
-  N = nrow(final_imputet),
-  sign_pet = final_imputet$sign_pet,
-  join_boycott = final_imputet$join_boycott,
-  attend_demo = final_imputet$attend_demo,
-  join_strike = final_imputet$join_strike,
-  free_choice = final_imputet$free_choice,
-  life_satis = final_imputet$life_satis,
-  financial_satis = final_imputet$financial_satis,
-  happiness = final_imputet$happiness,
-  health = final_imputet$health,
-  voice_account_score = final_imputet$var,
-  country = as.integer(final_imputet$country),
-  n_country = length(unique(final_imputet$country))
-)
-
-# Model specification
-model_string <- "
-model {
-  for (i in 1:N) {
-    sign_pet[i] ~ dnorm(mu_sign[i], tau_sign)
-    mu_sign[i] <- alpha_sign + beta_free_choice[country[i]] * free_choice[i] + beta_happiness[country[i]] * happiness[i] + beta_voice[country[i]] * voice_account_score[i] + u_sign[country[i]]
-    
-    join_boycott[i] ~ dnorm(mu_boycott[i], tau_boycott)
-    mu_boycott[i] <- alpha_boycott + beta_life_satis[country[i]] * life_satis[i] + beta_health[country[i]] * health[i] + beta_voice[country[i]] * voice_account_score[i] + u_boycott[country[i]]
-    
-    attend_demo[i] ~ dnorm(mu_demo[i], tau_demo)
-    mu_demo[i] <- alpha_demo + beta_financial_satis[country[i]] * financial_satis[i] + beta_voice[country[i]] * voice_account_score[i] + u_demo[country[i]]
-    
-    join_strike[i] ~ dnorm(mu_strike[i], tau_strike)
-    mu_strike[i] <- alpha_strike + beta_health[country[i]] * health[i] + beta_voice[country[i]] * voice_account_score[i] + u_strike[country[i]]
-  }
-  
-  # Priors for fixed effects
-  alpha_sign ~ dnorm(0, 0.001)
-  alpha_boycott ~ dnorm(0, 0.001)
-  alpha_demo ~ dnorm(0, 0.001)
-  alpha_strike ~ dnorm(0, 0.001)
-  
-  for (j in 1:n_country) {
-    beta_free_choice[j] ~ dnorm(0, 0.001)
-    beta_happiness[j] ~ dnorm(0, 0.001)
-    beta_life_satis[j] ~ dnorm(0, 0.001)
-    beta_health[j] ~ dnorm(0, 0.001)
-    beta_financial_satis[j] ~ dnorm(0, 0.001)
+    alpha_sign[j] ~ dnorm(0, 0.001)
+    alpha_boycott[j] ~ dnorm(0, 0.001)
+    alpha_demo[j] ~ dnorm(0, 0.001)
+    alpha_strike[j] ~ dnorm(0, 0.001)
     beta_voice[j] ~ dnorm(0, 0.001)
-  
-    # Random effects for countries
-    u_sign[j] ~ dnorm(0, tau_u_sign)
-    u_boycott[j] ~ dnorm(0, tau_u_boycott)
-    u_demo[j] ~ dnorm(0, tau_u_demo)
-    u_strike[j] ~ dnorm(0, tau_u_strike)
+    beta_voice_free_choice[j] ~ dnorm(0, 0.001)
+    beta_voice_life_satis[j] ~ dnorm(0, 0.001)
+    beta_voice_financial_satis[j] ~ dnorm(0, 0.001)
+    beta_voice_health[j] ~ dnorm(0, 0.001)
   }
-
+  
   # Precision parameters
   tau_sign ~ dgamma(0.001, 0.001)
   tau_boycott ~ dgamma(0.001, 0.001)
   tau_demo ~ dgamma(0.001, 0.001)
   tau_strike ~ dgamma(0.001, 0.001)
-  
-  tau_u_sign ~ dgamma(0.001, 0.001)
-  tau_u_boycott ~ dgamma(0.001, 0.001)
-  tau_u_demo ~ dgamma(0.001, 0.001)
-  tau_u_strike ~ dgamma(0.001, 0.001)
 }
 "
 
 # Initialize model
 jags_model <- jags.model(textConnection(model_string), data = data_list)
 
-# Update the model (Burn-in)
+# Burn-in
 update(jags_model, 1000)
 
-# Sample from the posterior distribution
-samples <- coda.samples(jags_model, variable.names = c("alpha_sign", "beta_free_choice", "beta_happiness", "beta_voice", "alpha_boycott", "beta_life_satis", "beta_health", "alpha_demo", "beta_financial_satis", "alpha_strike"), n.iter = 1000)
+# Sample from the posterior
+samples <- coda.samples(jags_model, variable.names = c("alpha_sign", "alpha_boycott", "alpha_demo", "alpha_strike", "beta_voice", "beta_free_choice", "beta_happiness", "beta_life_satis", "beta_health", "beta_financial_satis", "beta_gen_trust", "beta_religiosity", "beta_gender", "beta_employment", "tau_sign", "tau_boycott", "tau_demo", "tau_strike", "beta_voice_free_choice", "beta_voice_life_satis", "beta_voice_financial_satis", "beta_voice_health"), n.iter = 1000)
 
 # Summary statistics
 summary(samples)
-
-```
-
-
-```{r}
-library(openxlsx)
-
-# Create a new workbook
-wb <- createWorkbook()
-
-# Loop over each unique country in your dataset
-for (country_id in unique(final_imputet$country)) {
-  
-  # Assume you have a way to get the relevant samples subset for this country
-  # Replace the next line with your own logic
-  country_specific_samples <- subset(samples, country == country_id) # Update this line
-  
-  # Extract summary statistics for these samples
-  country_summary <- summary(country_specific_samples)
-  
-  # Convert summary into a data.frame for Excel writing
-  summary_df <- as.data.frame(as.matrix(country_summary))
-  
-  # Create a new sheet in the workbook for this country
-  sheet_name <- paste("Country", country_id)
-  addWorksheet(wb, sheet_name)
-  
-  # Write the data.frame to this worksheet
-  writeData(wb, sheet = sheet_name, x = summary_df)
-}
-
-# Save workbook
-saveWorkbook(wb, "Country_Specific_Summaries.xlsx", overwrite = TRUE)
-
 ```
